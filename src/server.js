@@ -90,7 +90,10 @@ export function createApp() {
     } catch(e) { if(!res.headersSent) { if(!(e instanceof UserError)) console.error('[syncy]',e);fail(res,e); } else res.end(); }
   });
 }
-if(process.argv[1] && path.resolve(process.argv[1])===fileURLToPath(import.meta.url)) {
-  const port=Number(process.env.PORT||3000);const host=process.env.HOST||'127.0.0.1';
+const isMain=process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url);
+// Vercel imports src/server.js as the Node server entry and requires listen() at startup.
+if(isMain||process.env.VERCEL){
+  const port=Number(process.env.PORT||3000);
+  const host=process.env.HOST||(process.env.VERCEL?'0.0.0.0':'127.0.0.1');
   createApp().listen(port,host,()=>console.log(`Syncy Care · http://${host}:${port} · synthetic demo · ${store.kind}`));
 }
