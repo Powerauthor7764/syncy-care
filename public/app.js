@@ -21,7 +21,14 @@ const topicIcons={plan:'◷',meds:'✚',tests:'◇',dc:'⌂',fu:'↗'};
 const time=s=>s?new Date(s).toLocaleString(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):'—';
 let toastHandle;
 function toast(msg){const el=$('#toast');el.textContent=msg;el.classList.add('show');clearTimeout(toastHandle);toastHandle=setTimeout(()=>el.classList.remove('show'),3400);}
-async function api(route,options={}){const r=await fetch(route,{headers:{'content-type':'application/json'},...options});let x;try{x=await r.json();}catch{x={error:'Unexpected server response'};}if(!r.ok)throw Error(x.error||`Server error ${r.status}`);return x;}
+async function api(route,options={}){
+  const headers={...(options.headers||{})};
+  if(options.body!=null&&!headers['content-type']&&!headers['Content-Type'])headers['content-type']='application/json';
+  const r=await fetch(route,{...options,headers});
+  let x;try{x=await r.json();}catch{x={error:`Unexpected server response (${r.status})`};}
+  if(!r.ok)throw Error(x.error||`Server error ${r.status}`);
+  return x;
+}
 const post=(url,obj)=>api(url,{method:'POST',body:JSON.stringify(obj)});
 const getUnderstanding=()=>state.dashboard?.patients.find(x=>x.id===state.patientId)?.understanding||{};
 const getChat=()=>state.chat[state.patientId]||(state.chat[state.patientId]=[{role:'bot',text:'Hi! I’m Syncy. I can explain the approved care plan, what changed, and what to ask your nurse. I won’t make medical decisions.',result:null}]);
