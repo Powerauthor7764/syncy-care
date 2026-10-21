@@ -189,7 +189,7 @@ async function serveStatic(req, res, pathname) {
 export async function handleRequest(req, res) {
   try {
     const url = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
-    let pathname = url.pathname;
+    let pathname = decodeURIComponent(url.pathname);
     // Vercel mounts some entry files under /api/* while the public routes are /health and /mcp
     if (pathname === '/api/health') pathname = '/health';
     if (pathname === '/api/mcp') pathname = '/mcp';
