@@ -1,0 +1,313 @@
+Syncy Care: The Complete Product Guide
+Oct 20, 2026 · @Moses
+What Syncy Care is
+Syncy Care is a self-hosted MCP server, built for the Alexa+ track of the Amazon Developer Hackathon, that helps a hospitalized patient understand their own care without ever making a clinical decision. It turns the clinician-approved care plan into plain answers about what is happening, what changed, what comes next and what to ask, and it tells the care team where the patient is still confused.
+The problem. A hospital stay produces a flood of information: many staff, tests, changing plans, medication swaps and a discharge sheet. Patients are tired and often cannot keep up. Hospitals are expected to communicate in ways patients understand, and poor understanding is linked to errors and worse outcomes. Most hospital software records whether information was given, not whether the patient understood it.
+The thesis. Syncy keeps a persistent model of what the patient has been told, what changed in their care, what they understand, and what still needs a human to clarify. The AI explains. The clinician interprets.
+Who it serves.
+• Patients and families get answers at the bedside by voice, without waiting for someone to walk in.
+• Nurses get fewer repeated questions such as "when is my test?".
+• Doctors get better-prepared patients and a view of where communication broke down, not another AI diagnosis.
+• The hospital gets a record of discharge teach-back.
+What it is not. It is not a symptom checker, a diagnosis tool, a dosing tool, a discharge decision-maker or a medical device. It uses synthetic data only.
+The patient experience
+A patient asks in their own words and gets an answer labelled with where it came from: the care plan, general education, or "ask your care team". Each patient-specific answer also returns the source record it was built from, such as ServiceRequest/SR-02047.
+What a patient can ask
+Question
+What Syncy does
+What's happening today?
+Lists today's events from the care plan, with times and done / to-do status
+What changed since yesterday?
+Diffs yesterday's and today's care-plan snapshots and lists each change
+What am I waiting for?
+Lists pending results and events
+Why was this test ordered?
+Gives only the reason written in the chart, with its source record
+Why did my medication change?
+Gives the chart's reason if one exists; otherwise says so and queues the question for the team
+What should I ask my doctor?
+Offers five standard rounds questions plus patient-specific ones
+What do I need to know before I go home?
+Shows approved medications, follow-ups, instructions and the hospital's warning signs
+What is an ultrasound?
+Gives a general definition, labelled general education
+Should I stop my medication?
+Refuses, explains why, and sends the question to the care team
+Explain that more simply / make the text bigger
+Rewords the last answer; changes text size or contrast on screen
+The three synthetic patients
+Patient
+Room
+Situation
+What it demonstrates
+Maria Thompson, 68
+302
+Abdominal pain; IV medication stopped, oral started, ultrasound added, discharge possible tomorrow
+Timeline, medication change, "what changed" (5 changes), question queue
+Jordan Lee, 24
+214
+Recovering after surgery; discharge later today
+Discharge, wound-care instructions, teach-back on Amoxicillin
+Ahmed Rahman, 55
+418
+Shortness of breath; oxygen being reduced, chest X-ray, inhaler teaching
+Inhaler teach-back, accessibility, family view
+A typical moment. Maria asks "What changed since yesterday?". Syncy answers that five things changed: the IV pain medication went from active to discontinued, oral acetaminophen was added, the afternoon bloodwork was cancelled, an abdominal ultrasound was added, and a possible discharge was added. Maria then asks "Should I stop taking my medication?". Syncy declines, says it is a decision for her clinical team, and queues her question for her nurse.
+Accessibility. The simulator has text-size controls, a high-contrast mode, a "simpler words" reply, optional spoken replies and mic input in Chrome. Voice matters here because a patient may be in bed, on IVs, exhausted or unable to use a phone.
+The clinical boundary
+On the simulator path, every request is classified in code before anything is answered. Over MCP, each tool carries its own policy, and the tool descriptions tell the agent to send any clinical-decision request to create_question_for_team. The boundary lives in code and tool design, not only in a prompt. Three levels decide what Syncy may do.
+Level
+Meaning
+Examples
+What happens
+GREEN
+Allowed directly
+"When is my ultrasound?", "What is bloodwork?", "What am I waiting for?"
+Answered from approved data, with source
+YELLOW
+Answer only from the chart, with attribution
+"Why was this test ordered?", "Why did my medication change?"
+Returns the written reason and its record; if none is written, queues a question for the team
+RED
+Never answered clinically
+"Should I stop my medication?", "Do I have cancer?", "Can I go home?", "What dose?"
+Refused; question sent to the care team queue
+What always goes RED. Starting, stopping, skipping or changing medication; dosing; diagnosis and "what's wrong with me"; prognosis and survival; whether it is safe to leave or be discharged; whether a result is bad or normal or what a scan shows; and attempts to make Syncy act as a doctor or ignore its rules.
+How the classifier works. src/core/safety.ts holds 15 RED patterns and 3 YELLOW patterns, checked in that order: RED wins, then YELLOW, otherwise GREEN. The fixed RED reply is: "That's a decision for your clinical team. I can't tell you to start, stop or change anything, or interpret what it means for you. I've added your question for your nurse so they can review it with you."
+Defense in depth.
+1. On the simulator path the rule-based classifier runs first; over MCP, the tool policies and descriptions do that job.
+2. Tools return only approved facts with provenance; the model never reads the chart directly.
+3. If Bedrock is configured, it only rewords text the tools already approved, and a Guardrail can be attached.
+4. An output check rejects reworded text that looks like clinical advice (a dose in mg, "you probably have", "you should stop") and falls back to the approved original.
+5. Every action is written to an audit log.
+Hospital-defined warning signs. Syncy reads back the hospital's warning signs verbatim and never invents them.
+Honest limit. The classifier is keyword-based, and the 38 test prompts were written by the same people as the rules. They are a baseline, not proof of safety. An independent set of adversarial prompts is still needed.
+Architecture
+Syncy Care is one Express server that exposes MCP and a simulator API over the same service layer.
+Requests arrive by MCP or the simulator API. The simulator path runs the classifier first. Every tool reads synthetic data and returns approved facts with a policy and source record. Only simplify_text can call Bedrock, and it only rewords text that a tool already approved.
+The 13 MCP tools
+The server exposes 13 tools over MCP spec 2025-11-25 on Streamable HTTP (POST /mcp, stateless). Every result returns policy, source (care_plan, general_education or ask_care_team) and a source record. The model can only call these tools; it never reads the chart.
+Tool
+Policy
+Inputs
+What it returns
+get_today_care_plan
+GREEN
+patientId
+Today's events: time, title, done or to-do, source record
+get_changes_since
+GREEN
+patientId
+Count and list of changes from the snapshot diff
+get_pending_events
+GREEN
+patientId
+What the patient is waiting for
+get_approved_patient_explanation
+YELLOW
+patientId, topic (test or medication)
+The chart's written reason and record; for a medication change, also queues a question
+get_discharge_requirements
+GREEN
+patientId
+Confirmed or preview status, medications, follow-ups, instructions, warning signs, contact
+get_rounds_questions
+GREEN
+patientId
+Five standard questions plus patient-specific ones
+create_question_for_team
+RED path
+patientId, question
+Queues the question; used for any clinical-decision request
+get_patient_questions
+GREEN
+patientId
+The patient's saved questions and their status
+get_understanding_state
+GREEN
+patientId
+Per-topic status, topics needing clarification, teach-back history
+set_understanding
+GREEN
+patientId, topic, status
+Records "I understand" or "explain again", returns updated state
+record_teach_back
+GREEN
+patientId, medication, patientAnswer
+Understood or needs clarification, with per-criterion results
+explain_clinical_term
+GREEN
+patientId, term
+General definition labelled general education; unknown terms are queued for the team
+simplify_text
+GREEN
+approvedText
+Plain-language rewording via Bedrock if configured; otherwise the original text
+Topics tracked: plan, meds, tests, discharge (dc) and follow-up (fu). Statuses: understood, explained, needs_clarification, not_reviewed.
+Other endpoints. GET /health reports the store and whether Bedrock is on. POST /api/ask runs the same classifier and tools from natural language for the simulator. GET /api/dashboard returns understanding state, the question queue and the audit log. POST /api/questions/:id/review marks a question reviewed. GET/DELETE /mcp return 405 because the server is stateless.
+The core engines
+Four small pieces of deterministic code carry the product. None of them depends on a model's medical judgment.
+1. Change diff (diff.ts). Each patient has a yesterday snapshot and a today snapshot of plan items (medications, tests, plan entries), each with an id and status. The diff reports an item as new, as a status change (for example active → discontinued), or as removed, and tags it with its FHIR-style resource type (MedicationRequest, ServiceRequest, CarePlan). "What changed?" is therefore a computed answer, not an LLM recollection.
+2. Understanding state. Each patient has five topics: plan, meds, tests, discharge and follow-up. Each is not_reviewed, explained, understood or needs_clarification. Explaining a topic moves it from not reviewed to explained, but never overwrites a stronger status that came from evidence such as a teach-back. The care-team dashboard reads this state to show where communication may have broken down. It is deliberately not a clinical risk score.
+3. Teach-back (teachback.ts). For each discharge medication the care team has approved an instruction and a set of criteria, each a pattern the patient's answer must match. The patient's answer is checked against those criteria only, so no model opinion about medicine is involved.
+Medication
+Approved instruction
+Criteria checked
+Amoxicillin (Jordan)
+One tablet twice daily, morning and evening, with food
+Dose: one tablet; frequency: twice daily; with food
+Acetaminophen (Jordan, Maria)
+At least 6 hours apart, only if needed
+Spacing: 6 hours
+Inhaler (Ahmed)
+Two puffs twice daily, morning and evening
+Dose: two puffs; frequency: twice daily
+Example: Jordan answers "I take one in the morning". The dose, frequency and food criteria are all missed, so the result is needs_clarification, the meds topic is flagged, and Syncy replies with the approved instruction and asks Jordan to confirm with the nurse. A full correct answer returns understood.
+4. Question queue and audit trail. Anything RED, and any YELLOW question the chart cannot answer, becomes a pending question for the care team with the priority "Patient-requested review". Every tool call writes an audit event: time, patient, what was asked, tool, policy, source and result. Together they show a reviewer exactly what Syncy did and why.
+Bedrock rewording (bedrock.ts). When BEDROCK_MODEL_ID is set, approved text can be reworded in plain language (a 5th-grade level for "simpler") with an optional Guardrail. The model is told to use only the given facts and add no advice. On any error, a guardrail intervention or advice-like output, the original approved text is returned.
+The build, start to end
+The product went from a planning idea to a tested server in a few steps. This is what was built, in order.
+Step
+What was built
+Result
+1. Concept
+Reframed a diagnosis-style idea into patient understanding: explain, never decide
+Syncy Care thesis and the GREEN / YELLOW / RED boundary
+2. Standalone prototype
+One HTML file with a login page and a full app: patient pages, care-team dashboard, audit trail, safety evaluation, architecture and pitch pages
+syncy-care.html, now public/simulator.html
+3. Fit check against the rules
+Compared the build to the Alexa+ track rules
+Confirmed the prototype counts only as a simulator; a real MCP server was needed
+4. Real MCP server
+TypeScript, MCP SDK, Express, Streamable HTTP, 13 tools
+Server answering initialize, tools/list and tools/call over HTTP
+5. Core logic
+Safety classifier, change diff, teach-back, in-memory and DynamoDB stores, Bedrock wrapper, service layer
+src/core/*
+6. Tests
+46 Vitest tests
+All pass; typecheck clean
+7. Submission material
+README, MIT license, Devpost story, pitch, built-with tags
+README.md, DESCRIPTION.md, devpost-submission.md
+Repo layout (about 985 lines of TypeScript including tests)
+syncy-care/
+  package.json  tsconfig.json  LICENSE  README.md  DESCRIPTION.md
+  src/
+    server.ts          Express: /mcp, /api/*, static simulator
+    mcp.ts             registers the 13 tools
+    core/
+      types.ts         shared types
+      data.ts          3 synthetic patients, glossary, rounds questions
+      safety.ts        GREEN / YELLOW / RED classifier
+      diff.ts          yesterday-vs-today snapshot diff
+      teachback.ts     criteria-based teach-back check
+      store.ts         MemoryStore and DynamoStore
+      bedrock.ts       optional plain-language rewording
+      service.ts       business logic behind every tool
+  public/simulator.html
+  tests/safety.test.ts
+Stack. TypeScript, Node 22, Express, the official MCP SDK, Zod, Vitest, AWS SDK for Bedrock Runtime and DynamoDB.
+Run it
+npm install
+npm test        # 46 tests
+npm run dev     # MCP at http://localhost:3000/mcp, simulator at /simulator.html
+Configuration (all optional). SYNCY_TABLE switches the store to DynamoDB. BEDROCK_MODEL_ID turns on rewording. BEDROCK_GUARDRAIL_ID and BEDROCK_GUARDRAIL_VERSION attach a Guardrail. PORT and ALLOWED_ORIGIN control the server.
+What the 46 tests cover: 38 classifier cases (20 RED, 14 GREEN, 4 YELLOW); RED prompts blocked, queued and free of clinical advice; source records on patient-specific answers; one patient's data never appearing in another's answers; rejection of unknown patients; Maria's change diff; and three teach-back cases (wrong answer, correct answer, medication with no approved instruction).
+Hackathon submission
+Syncy Care enters the Alexa+ track of the Amazon Developer Hackathon, with the AWS Builder and Open Source mini challenges layered on. A project can win only one track prize and one mini challenge prize. The deadline in our planning notes is October 23, 2026 at 12:00 PM PDT; confirm it on Devpost, since the pasted rules do not state it.
+Why it fits the Alexa+ rules. The track asks for a self-hosted MCP server (spec 2025-11-25 or later, Streamable HTTP) or an Agent Skill, and the repo must call the track's technology in code. Syncy ships exactly that MCP server. The web simulator is supporting material, not the entry itself.
+Judging criteria and how Syncy answers them
+Criterion
+Syncy's answer
+Tech implementation
+Real MCP server, 13 tools, Streamable HTTP, deterministic diff and teach-back, optional Bedrock, Guardrails and DynamoDB
+Design
+Voice plus visual bedside display, source labels on every answer, plain language, accessibility controls
+Potential impact
+One hospital journey: daily care, rounds, understanding, discharge, home
+Quality of idea
+A persistent model of what the patient understands, not a chatbot over hospital data
+Deliverables checklist
+[ ] Devpost story pasted (Inspiration through What's next) and "Built with" tags added
+[ ] Public GitHub repo with MIT license, or a private repo shared with testing@devpost.com and the six Amazon reviewers (invitations expire after 7 days, so add them at submission)
+[ ] Demo video under 3 minutes, public on YouTube or Vimeo, in English, with no third-party logos or copyrighted music
+[ ] Product feedback on every tool used, naming each AWS service and how it was used
+[ ] Tracks and mini challenges selected: Alexa+, AWS Builder, Open Source
+[ ] Open Source fields: contribution URL, repo URL, GitHub username, short description (a separate patient-understanding-mcp repo is the plan)
+[ ] Optional friction log (up to a 10% judging bonus) and feature requests
+[ ] Repo runs from the README on a clean machine
+Demo video script (about 3 minutes)
+Time
+Beat
+0:00–0:18
+Black screen: "Hospitals have systems for managing care. Patients need a system for understanding it." Then the name
+0:18–0:38
+"What's happening today?" calls get_today_care_plan; voice answers, display shows the timeline
+0:38–0:58
+"What changed since yesterday?" calls get_changes_since
+0:58–1:15
+"Should I stop taking the medication?" is refused and the question is queued
+1:15–1:35
+Teach-back with a deliberately wrong answer; the care-team screen shows needs clarification
+1:35–1:55
+Architecture: Alexa+, MCP, Syncy tools, store, Bedrock and Guardrails
+1:55–2:10
+"Explain that in simpler words" and "Make the text bigger"
+2:10–2:27
+Care-team dashboard: where communication broke down
+2:27–2:40
+Evidence: only numbers actually measured (46 tests)
+2:40–3:00
+"Care delivered. Care understood."
+The video must lead with working product; judges need not watch past 3:00. Name services in plain text and avoid Amazon or AWS logos.
+Honest status and roadmap
+The MCP server, the safety rules and the teach-back logic are built and tested locally; the AWS integrations and the simulator link are not yet proven. Claim only what the first column supports.
+Area
+Status
+Evidence
+MCP server over Streamable HTTP
+Verified
+initialize returned protocol 2025-11-25; tools/list returned 13 tools; tools/call worked over curl
+Classifier, diff, teach-back, isolation
+Verified
+46 Vitest tests pass; typecheck clean
+RED path over /api/ask
+Verified
+Returned RED, queued the question, replied with the fixed refusal
+Amazon DynamoDB store
+Untested
+Code written; never run against a real table or account
+Amazon Bedrock rewording and Guardrail
+Untested
+Code written; never run with AWS credentials
+Simulator linked to the server
+Not done
+simulator.html still uses its own copy of the response logic
+HealthLake, AgentCore, Lambda, Cognito
+Not built
+Planned only; do not claim them
+Independent safety testing
+Not done
+Current prompts were written by the same team as the rules
+User feedback and usability study
+Not done
+No nurse, physician or patient sessions run
+Deployed endpoint, public repo, demo video
+Not confirmed
+Needed before submitting
+Known gaps in the design
+• The classifier is keyword-based and can miss paraphrases; a reworded dangerous question could be treated as GREEN.
+• Data is hand-written JSON shaped like FHIR, not a real FHIR store.
+• Maria's "what changed" returns five changes, while the original pitch said three.
+• Family mode is a consent toggle in the simulator; real use needs proper authorization.
+• The server has no authentication; production would use Cognito or hospital single sign-on.
+• The in-memory store loses state on restart.
+Next steps, in priority order
+1. Connect simulator.html to /api/ask or /mcp, so the demo shows real tool calls.
+2. Run Bedrock and DynamoDB against a real account, or remove their tags from the submission.
+3. Get 50 to 100 adversarial prompts from someone outside the team and report the measured result.
+4. Deploy the server, record the demo, push the repo and add the reviewers at submission.
+5. After the hackathon: synthetic FHIR R4 through HealthLake, Bedrock AgentCore, certified interpreter-backed translation, and trials with nurses, physicians and patients.
+Impact claims. Describe the problem and the mechanism. Do not say Syncy reduces readmissions or improves outcomes without data.

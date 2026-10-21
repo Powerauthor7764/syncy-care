@@ -1,0 +1,17 @@
+{
+  "name": "syncy-care",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "description": "Synthetic patient-understanding MCP server and interactive bedside/care-team demo.",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js",
+    "build": "node scripts/check-build.js",
+    "typecheck": "node scripts/check-build.js",
+    "test": "node --test tests/*.test.js",
+    "check": "npm run build && npm test"
+  }
+}

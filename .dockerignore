@@ -1,0 +1,9 @@
+.git
+node_modules
+*.zip
+*.png
+tests
+docs
+README.md
+*.log
+.env*

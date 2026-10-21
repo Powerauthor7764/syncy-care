@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#102c38">
+  <meta name="description" content="Syncy Care: synthetic bedside patient-understanding and care-team communication demo.">
+  <title>Syncy Care — Care, understood.</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/app.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <!-- Landing -->
+  <div id="landing" class="auth-screen landing-screen" hidden>
+    <div class="landing-glow" aria-hidden="true"></div>
+    <header class="landing-top">
+      <div class="brand landing-brand">
+        <div class="brand-mark"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M4 17h6l3-7 5 15 4-9h6"/></svg></div>
+        <div><strong>Syncy<span>Care</span></strong><small>Patient understanding</small></div>
+      </div>
+      <button type="button" class="btn landing-signin-btn" id="goToLogin">Sign in</button>
+    </header>
+    <main class="landing-hero">
+      <p class="landing-eyebrow">✦ Synthetic bedside companion</p>
+      <h1>Care,<br><em>understood.</em></h1>
+      <p class="landing-lead">Turn approved care plans into clear answers — for patients, families, and care teams. Demo only. Not for clinical use.</p>
+      <div class="landing-actions">
+        <button type="button" class="btn primary" id="landingCta">Sign in to workspace ↗</button>
+        <span class="landing-note">One demo account · synthetic records only</span>
+      </div>
+    </main>
+    <footer class="landing-foot">Syncy Care · Hackathon demonstration · The AI explains. The clinician interprets.</footer>
+  </div>
+
+  <!-- Sign in -->
+  <div id="login" class="auth-screen login-screen" hidden>
+    <div class="login-card">
+      <div class="brand landing-brand">
+        <div class="brand-mark"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M4 17h6l3-7 5 15 4-9h6"/></svg></div>
+        <div><strong>Syncy<span>Care</span></strong><small>Sign in to continue</small></div>
+      </div>
+      <h1>Welcome back</h1>
+      <p class="login-sub">Use the demo credentials to open the patient workspace.</p>
+      <form id="loginForm" novalidate>
+        <div class="form-field">
+          <label for="loginEmail">Email</label>
+          <input type="email" id="loginEmail" name="email" autocomplete="username" placeholder="you@example.com" required>
+        </div>
+        <div class="form-field">
+          <label for="loginPassword">Password</label>
+          <input type="password" id="loginPassword" name="password" autocomplete="current-password" placeholder="••••••••" required>
+        </div>
+        <p id="loginError" class="login-error" role="alert" hidden>Invalid email or password.</p>
+        <button class="btn primary login-submit" type="submit">Sign in ↗</button>
+      </form>
+      <button type="button" class="text-button login-back" id="backToLanding">← Back to home</button>
+    </div>
+  </div>
+
+  <!-- App shell (shown after sign-in) -->
+  <div id="app" class="shell" hidden>
+    <aside class="sidebar" aria-label="Primary navigation">
+      <div class="brand"><div class="brand-mark"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M4 17h6l3-7 5 15 4-9h6"/></svg></div><div><strong>Syncy<span>Care</span></strong><small>Patient understanding</small></div></div>
+      <div class="sidebar-divider"></div>
+      <div class="sidebar-label">WORKSPACE</div>
+      <nav id="nav" class="nav-list" aria-label="Views">
+        <button type="button" data-view="patient" class="nav-item active"><span class="nav-icon">◫</span> Patient workspace <span class="nav-arrow">›</span></button>
+        <button type="button" data-view="team" class="nav-item"><span class="nav-icon">▤</span> Care-team dashboard <span class="nav-arrow">›</span></button>
+        <button type="button" data-view="safety" class="nav-item"><span class="nav-icon">◇</span> Safety lab <span class="nav-arrow">›</span></button>
+        <button type="button" data-view="architecture" class="nav-item"><span class="nav-icon">⌘</span> Architecture <span class="nav-arrow">›</span></button>
+      </nav>
+      <div class="sidebar-label sidebar-label-space">YOUR PATIENTS <span>03</span></div>
+      <div id="sidebarPatients" class="sidebar-patients"></div>
+      <div class="sidebar-bottom"><div class="mini-dot"></div><div><b>Demo environment</b><p>Synthetic records only<br>Not for clinical use</p></div></div>
+    </aside>
+    <div class="main-shell">
+      <header class="topbar">
+        <div class="topbar-left"><button type="button" id="menuToggle" aria-label="Toggle navigation" class="icon-btn mobile-menu">☰</button><div class="breadcrumb">Workspace <span>/</span> <b id="breadcrumb">Patient overview</b></div></div>
+        <div class="topbar-right"><span class="topbar-live" id="serverStatus"><i></i> CONNECTING</span><label for="patientSelector" class="sr-only">Select synthetic patient</label><select id="patientSelector" class="patient-select"><option value="maria">Maria Thompson · 302</option><option value="jordan">Jordan Lee · 214</option><option value="ahmed">Ahmed Rahman · 418</option></select><button type="button" id="a11yToggle" class="icon-btn" title="Larger text" aria-label="Toggle larger text">A+</button><button type="button" id="contrastToggle" class="icon-btn" title="High contrast" aria-label="Toggle high contrast">◐</button><button type="button" id="signOutBtn" class="btn small soft" title="Sign out">Sign out</button><div class="avatar">SC</div></div>
+      </header>
+      <main id="mainContent" tabindex="-1" aria-live="polite"><div class="loading-screen"><div class="loading-ring"></div><h1>Preparing your workspace</h1><p>Loading approved synthetic records…</p></div></main>
+      <footer class="main-footer">Syncy Care · Synthetic demonstration · The AI explains. The clinician interprets. <span>v1.0.0</span></footer>
+    </div>
+  </div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
