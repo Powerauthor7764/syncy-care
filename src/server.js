@@ -4,6 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ask, dashboard, patientList, reviewQuestion, runTool, TOOL_DEFS, UserError, store, PATIENTS } from './core/service.js';
 import { diffSnapshots } from './core/diff.js';
+import { probeBedrock } from './core/aws.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../public');
 const TYPES = {
@@ -112,10 +113,16 @@ async function api(req, res, pathname, url) {
       status: 'ok',
       store: store.kind,
       bedrockConfigured: !!process.env.BEDROCK_MODEL_ID,
+      awsProfile: process.env.AWS_PROFILE || null,
+      awsRegion: process.env.AWS_REGION || null,
       guardrailConfigured: !!(process.env.BEDROCK_GUARDRAIL_ID && process.env.BEDROCK_GUARDRAIL_VERSION),
       syntheticOnly: true,
       version: '1.0.0',
     });
+  }
+  if (req.method === 'GET' && pathname === '/api/bedrock/probe') {
+    // Synthetic-only smoke test of optional Bedrock rewording. No real patient data.
+    return json(res, 200, await probeBedrock());
   }
   if (req.method === 'GET' && pathname === '/api/patients') return json(res, 200, patientList());
   if (req.method === 'GET' && pathname === '/api/config') {
@@ -123,6 +130,8 @@ async function api(req, res, pathname, url) {
       syntheticOnly: true,
       store: store.kind,
       bedrockConfigured: !!process.env.BEDROCK_MODEL_ID,
+      awsProfile: process.env.AWS_PROFILE || null,
+      awsRegion: process.env.AWS_REGION || null,
       guardrailConfigured: !!(process.env.BEDROCK_GUARDRAIL_ID && process.env.BEDROCK_GUARDRAIL_VERSION),
       mode: 'unauthenticated local demo',
     });

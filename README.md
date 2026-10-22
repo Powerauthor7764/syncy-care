@@ -87,24 +87,27 @@ Or send plain-language questions to `POST /api/ask` with `{"patientId":"maria","
 | `src/core/diff.js` | Snapshot comparison for the care-plan changes |
 | `src/core/teachback.js` | Fixed teach-back criteria (never model-graded) |
 | `src/core/store.js` | Serialized demo-state mutations; memory and optional DynamoDB storage |
-| `src/core/aws.js` | Optional AWS SigV4 Bedrock and DynamoDB requests |
+| `src/core/aws.js` | Optional Bedrock Converse rewording + SigV4 DynamoDB adapter |
 | `src/core/service.js` | 13 tools, source attribution, routing, question and audit operations |
 | `public/` | Responsive browser patient app, care-team app, safety lab, architecture view |
 | `tests/` | Safety, provenance, teach-back, REST and MCP integration tests |
 
 **Runtime requirements:** Node 22+, no external npm packages. The source is JavaScript with native ECMAScript modules; the `build` task validates JavaScript syntax because no bundling is necessary. This is a deliberate implementation change from the original TypeScript/Express starter to make the complete project runnable without a package registry.
 
-## Optional AWS integrations — NOT verified against an AWS account
+## Optional Amazon Bedrock (plain-language rewording)
 
-The demo works fully in memory without AWS. To opt in, set environment variables (example: `.env.example`):
+The demo works fully in memory without AWS. Optionally, **Amazon Bedrock** (Nova Micro) can reword an already-approved synthetic answer when the patient asks to “make it simpler.” Bedrock does **not** diagnose, dose, or decide treatment.
 
-- `SYNCY_TABLE`: DynamoDB table name; partition key must be `patientId` (String); AWS credentials with appropriate IAM permissions are required.
-- `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` and optional `AWS_SESSION_TOKEN`.
-- `BEDROCK_MODEL_ID`: optional Anthropic Claude model ID available in your Bedrock region, used **only for rewording approved prior answers**.
-- `BEDROCK_GUARDRAIL_ID` and `BEDROCK_GUARDRAIL_VERSION`: optional guardrail headers.
-- `PORT`, `HOST`, `ALLOWED_ORIGIN`, `ENABLE_DEMO_RESET`.
+Verified configuration for the AWS Builder submission:
 
-The optional AWS adapter code has **not** been exercised with actual AWS credentials, so do not claim Bedrock/DynamoDB/Guardrails are operational until you verify them in your account. The Bedrock request shape is for Claude models and is not automatically compatible with other model families. See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
+- Model / inference profile: `us.amazon.nova-micro-v1:0`
+- Region: `us-east-2`
+- Auth: temporary `aws login` session on a non-root IAM profile (for example `syncy-care-dev`) via `AWS_PROFILE` — no long-lived access keys in the repository
+- Tool path: approved care-plan text → `simplify_text` → Bedrock Converse → `isSafeRewording` (fail closed)
+
+See [docs/AWS_BUILDER.md](docs/AWS_BUILDER.md) and [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md). Copy `.env.example` to `.env` (never commit `.env`).
+
+Optional DynamoDB (`SYNCY_TABLE`) and Guardrail env vars remain available but are **not** required for the hackathon demo.
 
 ## Safety and honest status
 
