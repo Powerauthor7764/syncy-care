@@ -26,7 +26,17 @@ Create a table with String partition key `patientId` and grant appropriate `dyna
 
 ## Optional Bedrock
 
-Configure `BEDROCK_MODEL_ID` for an Anthropic Claude model supported by Bedrock in your region, plus `AWS_REGION` and credentials authorized for `bedrock:InvokeModel`. Optional Guardrail headers are configured through `BEDROCK_GUARDRAIL_ID` and `BEDROCK_GUARDRAIL_VERSION`. Only the `simplify_text` tool invokes Bedrock. If the call fails, the previously approved text is returned. **Real AWS model/Guardrail integration has not been verified.**
+Prefer browser login credentials (no long-lived access keys):
+
+```bash
+aws login --region us-east-2 --profile syncy-care-dev
+# copy .env.example → .env with AWS_PROFILE, AWS_REGION, BEDROCK_MODEL_ID
+node --env-file=.env src/server.js
+```
+
+Configure `BEDROCK_MODEL_ID` (verified path: `us.amazon.nova-micro-v1:0`), `AWS_REGION=us-east-2`, and `AWS_PROFILE` for a **non-root** IAM user authorized for Bedrock Converse. Only the `simplify_text` tool invokes Bedrock (via AWS CLI `bedrock-runtime converse`). If the call fails, the previously approved text is returned.
+
+Smoke-test with synthetic text only: `GET /api/bedrock/probe` or `node --env-file=.env scripts/test-bedrock-e2e.js`. See [AWS_BUILDER.md](AWS_BUILDER.md).
 
 ## MCP connection
 

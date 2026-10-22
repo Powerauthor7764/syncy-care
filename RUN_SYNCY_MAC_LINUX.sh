@@ -6,4 +6,8 @@ if ! command -v node >/dev/null; then
   exit 1
 fi
 echo 'Syncy Care: http://127.0.0.1:3000'
-node src/server.js
+if [ -f .env ]; then
+  node --env-file=.env src/server.js
+else
+  node src/server.js
+fi

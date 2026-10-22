@@ -7,5 +7,9 @@ if errorlevel 1 (
  exit /b 1
 )
 echo Starting Syncy Care on http://127.0.0.1:3000
-node src/server.js
+if exist ".env" (
+  node --env-file=.env src/server.js
+) else (
+  node src/server.js
+)
 pause
