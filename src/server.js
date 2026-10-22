@@ -2,8 +2,20 @@ import http from 'node:http';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { ask, dashboard, patientList, reviewQuestion, runTool, TOOL_DEFS, UserError, store, PATIENTS } from './core/service.js';
-import { diffSnapshots } from './core/diff.js';
+import { randomUUID } from 'node:crypto';
+import {
+  ask,
+  dashboard,
+  patientList,
+  reviewQuestion,
+  runTool,
+  TOOL_DEFS,
+  UserError,
+  store,
+  getPatientView,
+  advanceTimeline,
+  resetDemoPatient,
+} from './core/service.js';
 import { probeBedrock } from './core/aws.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../public');
@@ -17,12 +29,43 @@ const TYPES = {
   '.json': 'application/json',
 };
 
+const COOKIE = 'syncy-demo-session';
+
+function parseCookies(header) {
+  const out = {};
+  if (!header) return out;
+  for (const part of String(header).split(';')) {
+    const i = part.indexOf('=');
+    if (i < 1) continue;
+    out[part.slice(0, i).trim()] = decodeURIComponent(part.slice(i + 1).trim());
+  }
+  return out;
+}
+
+function ensureSession(req, res) {
+  const cookies = parseCookies(req.headers.cookie);
+  let sessionId = cookies[COOKIE] || req.headers['x-syncy-session'];
+  if (!sessionId || !/^[a-zA-Z0-9_-]{8,80}$/.test(sessionId)) {
+    sessionId = randomUUID();
+  }
+  const secure = String(req.headers['x-forwarded-proto'] || '').includes('https');
+  res.setHeader(
+    'set-cookie',
+    `${COOKIE}=${sessionId}; Path=/; HttpOnly; SameSite=Lax; Max-Age=604800${secure ? '; Secure' : ''}`,
+  );
+  return sessionId;
+}
+
 const json = (res, status, value, extra = {}) => {
-  res.writeHead(status, {
+  const headers = {
     'content-type': 'application/json; charset=utf-8',
     'cache-control': 'no-store',
     ...extra,
-  });
+  };
+  // Preserve Set-Cookie if already queued via setHeader
+  const cookie = res.getHeader?.('set-cookie');
+  if (cookie) headers['set-cookie'] = cookie;
+  res.writeHead(status, headers);
   res.end(JSON.stringify(value));
 };
 
@@ -32,7 +75,6 @@ const fail = (res, err) =>
   });
 
 async function body(req) {
-  // Vercel Node functions may already populate req.body
   if (req.body !== undefined && req.body !== null && typeof req.body === 'object' && !Buffer.isBuffer(req.body)) {
     if (Array.isArray(req.body)) throw new UserError('Expected a JSON object in request body');
     return req.body;
@@ -40,7 +82,8 @@ async function body(req) {
   if (!req.headers['content-type']?.includes('application/json')) {
     throw new UserError('Content-Type must be application/json', 415);
   }
-  let chunks = '', size = 0;
+  let chunks = '',
+    size = 0;
   for await (const data of req) {
     size += data.length;
     if (size > 16000) throw new UserError('Request body exceeds 16 KB', 413);
@@ -67,7 +110,11 @@ async function mcp(req, res) {
     const allowed = (process.env.ALLOWED_ORIGIN || '').split(',').map((s) => s.trim()).filter(Boolean);
     const local = /^https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?$/.test(origin);
     let vercel = false;
-    try { vercel = /\.vercel\.app$/i.test(new URL(origin).hostname); } catch { /* ignore invalid Origin */ }
+    try {
+      vercel = /\.vercel\.app$/i.test(new URL(origin).hostname);
+    } catch {
+      /* ignore */
+    }
     if (!allowed.includes(origin) && !local && !vercel) throw new UserError('MCP Origin not allowed', 403);
   }
   const x = await body(req);
@@ -86,7 +133,7 @@ async function mcp(req, res) {
     return rpc({
       protocolVersion: '2025-11-25',
       capabilities: { tools: { listChanged: false } },
-      serverInfo: { name: 'syncy-care', version: '1.0.0' },
+      serverInfo: { name: 'syncy-care', version: '1.1.0' },
       instructions:
         'Synthetic-data-only patient understanding demo. Never make clinical decisions. For medical decisions call create_question_for_team. Every response contains source labels and provenance.',
     });
@@ -97,7 +144,7 @@ async function mcp(req, res) {
     const name = x.params?.name;
     if (typeof name !== 'string') return error(-32602, 'Tool name required');
     try {
-      const result = await runTool(name, x.params?.arguments);
+      const result = await runTool(name, x.params?.arguments, 'mcp');
       return rpc({ content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result, isError: false });
     } catch (e) {
       if (e instanceof UserError) return rpc({ content: [{ type: 'text', text: e.message }], isError: true });
@@ -107,7 +154,7 @@ async function mcp(req, res) {
   return error(-32601, 'Unsupported JSON-RPC method');
 }
 
-async function api(req, res, pathname, url) {
+async function api(req, res, pathname, url, sessionId) {
   if (req.method === 'GET' && pathname === '/health') {
     return json(res, 200, {
       status: 'ok',
@@ -117,11 +164,10 @@ async function api(req, res, pathname, url) {
       awsRegion: process.env.AWS_REGION || null,
       guardrailConfigured: !!(process.env.BEDROCK_GUARDRAIL_ID && process.env.BEDROCK_GUARDRAIL_VERSION),
       syntheticOnly: true,
-      version: '1.0.0',
+      version: '1.1.0',
     });
   }
   if (req.method === 'GET' && pathname === '/api/bedrock/probe') {
-    // Synthetic-only smoke test of optional Bedrock rewording. No real patient data.
     return json(res, 200, await probeBedrock());
   }
   if (req.method === 'GET' && pathname === '/api/patients') return json(res, 200, patientList());
@@ -134,34 +180,40 @@ async function api(req, res, pathname, url) {
       awsRegion: process.env.AWS_REGION || null,
       guardrailConfigured: !!(process.env.BEDROCK_GUARDRAIL_ID && process.env.BEDROCK_GUARDRAIL_VERSION),
       mode: 'unauthenticated local demo',
+      demoSessions: true,
     });
   }
   if (req.method === 'GET' && pathname.startsWith('/api/patients/')) {
-    const id = pathname.split('/')[3];
-    const p = PATIENTS[id];
-    if (!p) throw new UserError('Unknown patient', 404);
-    const { yesterday, snapshot, rationales, medications, ...exposed } = p;
-    return json(res, 200, {
-      ...exposed,
-      changes: diffSnapshots(yesterday, snapshot),
-      medications: medications.map(({ name, instruction, record }) => ({ name, instruction, record })),
-      rationales,
-    });
+    const parts = pathname.split('/');
+    const id = parts[3];
+    if (parts[4] === 'questions') {
+      const view = await getPatientView(id, sessionId);
+      return json(res, 200, { questions: view.questions, demoDisclaimer: view.demoDisclaimer });
+    }
+    return json(res, 200, await getPatientView(id, sessionId));
   }
   if (req.method === 'GET' && pathname === '/api/dashboard') {
-    return json(res, 200, await dashboard(url.searchParams.get('patientId')));
+    return json(res, 200, await dashboard(url.searchParams.get('patientId'), sessionId));
   }
   if (req.method === 'POST' && pathname === '/api/ask') {
     const x = await body(req);
-    return json(res, 200, await ask(x.patientId, x.question));
+    return json(res, 200, await ask(x.patientId, x.question, sessionId, { mode: x.mode }));
   }
   if (req.method === 'POST' && pathname === '/api/tools') {
     const x = await body(req);
-    return json(res, 200, await runTool(x.name, x.arguments || {}));
+    return json(res, 200, await runTool(x.name, x.arguments || {}, sessionId));
+  }
+  if (req.method === 'POST' && pathname === '/api/demo/advance') {
+    const x = await body(req);
+    return json(res, 200, await advanceTimeline(x.patientId, sessionId));
+  }
+  if (req.method === 'POST' && pathname === '/api/demo/reset') {
+    const x = await body(req);
+    return json(res, 200, await resetDemoPatient(x.patientId, sessionId));
   }
   if (req.method === 'POST' && /^\/api\/questions\/[^/]+\/review$/.test(pathname)) {
     await body(req);
-    return json(res, 200, await reviewQuestion(decodeURIComponent(pathname.split('/')[3])));
+    return json(res, 200, await reviewQuestion(decodeURIComponent(pathname.split('/')[3]), sessionId));
   }
   if (req.method === 'POST' && pathname === '/api/reset-demo') {
     if (process.env.ENABLE_DEMO_RESET !== 'true') {
@@ -194,16 +246,15 @@ async function serveStatic(req, res, pathname) {
   res.end(req.method === 'HEAD' ? undefined : data);
 }
 
-/** Shared request handler for local Node server and Vercel serverless. */
 export async function handleRequest(req, res) {
   try {
     const url = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
     let pathname = decodeURIComponent(url.pathname);
-    // Vercel mounts some entry files under /api/* while the public routes are /health and /mcp
     if (pathname === '/api/health') pathname = '/health';
     if (pathname === '/api/mcp') pathname = '/mcp';
+    const sessionId = pathname.startsWith('/api/') || pathname === '/health' ? ensureSession(req, res) : 'default';
     if (pathname === '/mcp') return await mcp(req, res);
-    if (pathname === '/health' || pathname.startsWith('/api/')) return await api(req, res, pathname, url);
+    if (pathname === '/health' || pathname.startsWith('/api/')) return await api(req, res, pathname, url, sessionId);
     return await serveStatic(req, res, pathname);
   } catch (e) {
     if (!res.headersSent) {

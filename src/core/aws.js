@@ -126,25 +126,30 @@ export async function awsJson({
  * Reword approved synthetic text via Bedrock Converse using the AWS CLI signer
  * (browser login profile or temporary env credentials — no long-lived access keys).
  */
-export async function rewordApproved(original) {
+export async function rewordApproved(original, options = {}) {
   const model = process.env.BEDROCK_MODEL_ID;
   if (!model) return original;
   // Test-only stubs (never set in production). Keep CI free of live AWS calls.
   if (process.env.SYNCY_BEDROCK_STUB === 'fail') throw new Error('stubbed bedrock failure');
-  if (process.env.SYNCY_BEDROCK_STUB === 'ok') return `Simpler words: ${original}`;
+  if (process.env.SYNCY_BEDROCK_STUB === 'ok') {
+    const mode = options.mode || 'simple';
+    if (mode === 'short') return `Short: ${original.split('\n')[0]}`;
+    if (mode === 'steps') return `1. ${original.split('\n')[0]}\n2. Review details with your care team.`;
+    return `Simpler words: ${original}`;
+  }
   if (process.env.SYNCY_BEDROCK_STUB === 'unsafe') {
     return 'You should stop your medication and double the dose based on this paraphrase.';
   }
   const region = process.env.AWS_REGION || 'us-east-1';
+  const systemText =
+    options.systemPrompt ||
+    'You simplify ONLY the exact approved text given. Keep every fact and its uncertainty. Never add medical advice, clinical interpretations, dose instructions, diagnoses, timing changes, or recommendations. Do not change the meaning. Return only a simpler paraphrase.';
+  const maxTokens = options.mode === 'short' ? 120 : options.mode === 'steps' ? 320 : 280;
   const input = {
     modelId: model,
-    system: [
-      {
-        text: 'You simplify ONLY the exact approved text given. Keep every fact and its uncertainty. Never add medical advice, clinical interpretations, dose instructions, diagnoses, timing changes, or recommendations. Do not change the meaning. Return only a simpler paraphrase.',
-      },
-    ],
+    system: [{ text: systemText }],
     messages: [{ role: 'user', content: [{ text: original }] }],
-    inferenceConfig: { maxTokens: 280, temperature: 0 },
+    inferenceConfig: { maxTokens, temperature: 0 },
   };
   if (process.env.BEDROCK_GUARDRAIL_ID && process.env.BEDROCK_GUARDRAIL_VERSION) {
     input.guardrailConfig = {
