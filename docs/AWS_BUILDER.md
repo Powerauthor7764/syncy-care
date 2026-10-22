@@ -83,23 +83,34 @@ aws sts get-caller-identity --profile syncy-care-dev
 - If Bedrock errors or credentials are missing, Syncy Care fails closed to the approved text.
 - Synthetic patients only (Maria, Jordan, Ahmed). No real patient data.
 
-## Live test evidence
+## Live test evidence (non-root IAM user)
 
-_Initial PR may ship with local verification notes. After the non-root `syncy-care-dev` profile completes a live Converse call, this section is updated with:_
+I re-ran a live Amazon Bedrock Converse call on 2026-10-22 after switching the CLI profile to the non-root IAM user `syncy-care-dev`.
 
-- AWS model ID
-- Region
-- Non-root caller ARN (account id only; no secrets)
-- Approved synthetic source text (Maria daily plan excerpt)
-- Reworded output
-- Pass/fail of `scripts/test-bedrock-e2e.js`
+| Field | Value |
+|---|---|
+| Caller ARN | `arn:aws:iam::978610650372:user/syncy-care-dev` (not root) |
+| Model / inference profile | `us.amazon.nova-micro-v1:0` |
+| Region | `us-east-2` |
+| Profile | `syncy-care-dev` |
+| Script | `node --env-file=.env scripts/test-bedrock-e2e.js` |
+| Result | `probe.ok=true`, `simplify_text` `reworded=true` |
 
-### Evidence captured during development (local verification)
+**Probe (synthetic sample, not a real patient):**
 
-- Model: `us.amazon.nova-micro-v1:0`
-- Region: `us-east-2`
-- Feature path: Maria → approved daily plan → `simplify_text` → `reworded=true`
-- Automated suite: `npm run check` (includes Bedrock stub/fail-closed tests; live AWS not required in CI)
+- Input: `Today you have bloodwork at 9 AM and physiotherapy at 2 PM. Source: CarePlan/demo-1.`
+- Output: `You have bloodwork at 9 AM and physiotherapy at 2 PM today. Source: CarePlan/demo-1.`
+
+**Maria Thompson synthetic daily plan → Make it simpler:**
+
+- Approved source text (excerpt):  
+  `8:00 AM: Morning blood sample collected (done)` / `10:00 AM: Physician rounds (done)` / `3:00 PM: Abdominal ultrasound (to do)` / `4:30 PM: Care-plan review...`
+- Reworded text:  
+  `8:00 AM: Blood sample taken (completed)` / `10:00 AM: Doctor's rounds (completed)` / `3:00 PM: Abdominal ultrasound (scheduled)` / `4:30 PM: Care-plan review (scheduled)`
+
+Automated suite: `npm run check` — **86/86** passing (includes Bedrock stub/fail-closed tests; CI does not require live AWS).
+
+**Credential hygiene for this verification:** I used a short-lived IAM user access key only long enough to prove non-root Converse access, then deleted all access keys on `syncy-care-dev`. Ongoing local demos should use browser `aws login` as the IAM user (not root) or another temporary session—never commit keys.
 
 ## Limitations (honest)
 
