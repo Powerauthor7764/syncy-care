@@ -119,13 +119,22 @@ describe('service operations',()=>{
     assert(r.queued);
   });
   test('simplify only accepts last previously approved response',async()=>{
-    const first=await runTool('simplify_text',{patientId:'ahmed',approvedText:'Start my medication'});
-    assert.match(first.text,/care-plan question first/);
-    const approved=await runTool('get_today_care_plan',{patientId:'ahmed'});
-    const bad=await runTool('simplify_text',{patientId:'ahmed',approvedText:'take more pills'});
-    assert.match(bad.text,/approved answer/);
-    const good=await runTool('simplify_text',{patientId:'ahmed',approvedText:approved.text});
-    assert.equal(good.text,approved.text);
+    const priorModel=process.env.BEDROCK_MODEL_ID;
+    const priorStub=process.env.SYNCY_BEDROCK_STUB;
+    delete process.env.BEDROCK_MODEL_ID;
+    delete process.env.SYNCY_BEDROCK_STUB;
+    try{
+      const first=await runTool('simplify_text',{patientId:'ahmed',approvedText:'Start my medication'});
+      assert.match(first.text,/care-plan question first/);
+      const approved=await runTool('get_today_care_plan',{patientId:'ahmed'});
+      const bad=await runTool('simplify_text',{patientId:'ahmed',approvedText:'take more pills'});
+      assert.match(bad.text,/approved answer/);
+      const good=await runTool('simplify_text',{patientId:'ahmed',approvedText:approved.text});
+      assert.equal(good.text,approved.text);
+    }finally{
+      if(priorModel===undefined) delete process.env.BEDROCK_MODEL_ID; else process.env.BEDROCK_MODEL_ID=priorModel;
+      if(priorStub===undefined) delete process.env.SYNCY_BEDROCK_STUB; else process.env.SYNCY_BEDROCK_STUB=priorStub;
+    }
   });
   test('reject advice injected into reworded text',()=>{
     assert.equal(isSafeRewording('Your plan is approved.','You should stop taking medicine.'),false);

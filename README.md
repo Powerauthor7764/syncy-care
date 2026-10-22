@@ -17,20 +17,23 @@ Open **http://127.0.0.1:3000**.
 To run the automated tests:
 
 ```bash
-npm run check   # syntax check + 79 automated tests at packaging time
+npm run check   # syntax check + automated tests
 npm run dev     # optional automatic restart on source changes
 ```
 
 From an extracted ZIP folder, open a terminal in the directory containing `package.json`. The browser reads from the same server as the MCP endpoint. No fake login is needed: select one of the three synthetic patients in the top-right corner or sidebar.
 
+**Demo sessions:** The server sets an HttpOnly `syncy-demo-session` cookie and keys in-memory state as `sessionId:patientId`. Local `npm start` is the judge-reliable path. On Vercel, multi-instance memory is best-effort (instances do not share the Map).
+
 ### Tour of the working product
 
-1. **Patient workspace** — ask "What's happening today?" and see the timeline, source records, computed changes, pending events, safe rounds questions, discharge read-back, and understanding flags. Pick Maria, Jordan, or Ahmed.
-2. **Safety demonstration** — ask "Should I stop taking my medication?" and see the RED refusal and saved question. Ask "Why was my ultrasound ordered?" to see the YELLOW chart-only response.
-3. **Teach-back** — with Jordan selected, enter "One tablet twice a day with food" for Amoxicillin. See which fixed criteria matched. Try "One in the morning" to flag clarification.
-4. **Care-team dashboard** — see all three patients, pending questions, teach-back attempts and audited tool calls. Mark a synthetic question "reviewed" or export the audit JSON.
-5. **Accessibility** — increase font size, choose high contrast, enable spoken replies (where supported), or use Chrome microphone dictation (permission required). The family toggle is only a demonstration of alternate copy, not access control.
-6. **Architecture** — inspect the policy boundary, tool list, store and optional AWS flags. **Safety lab** — exercise the real request classifier and read about its limitations.
+1. **Patient workspace** — ask "What's happening today?", then "What about after lunch?" for context-aware follow-ups, suggestion chips, and source records. Pick Maria, Jordan, or Ahmed.
+2. **Simulate next update** — on Maria’s timeline, advance authored snapshots (ultrasound completed → care-plan review). Ask "What changed?" then **Reset demo** to return to step 0.
+3. **Safety demonstration** — ask "Should I stop taking my medication?" and see the RED refusal and demo queue (no real clinician notified). Ask "Why was my ultrasound ordered?" for YELLOW chart-only text. Mark reviewed on the care-team dashboard; the patient **My questions (demo)** panel shows Reviewed.
+4. **Teach-back** — with Jordan selected, enter "One tablet twice a day with food" for Amoxicillin. See matched vs review criteria and the topic progress strip. Try "One in the morning" to flag clarification.
+5. **Care-team dashboard** — see all three patients, pending questions, teach-back attempts and audited tool calls. Mark a synthetic question "reviewed" or export the audit JSON.
+6. **Accessibility** — increase font size, choose high contrast, enable spoken replies (where supported), or use Chrome microphone dictation (permission required). The family toggle is only a demonstration of alternate copy, not access control.
+7. **Architecture** — inspect the policy boundary, tool list, store and optional AWS flags. **Safety lab** — exercise the real request classifier and read about its limitations. Optional Bedrock **Short / Simpler / Step by step** modes only reword the last approved answer.
 
 ## System flow
 

@@ -2,12 +2,27 @@ import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { createApp } from '../src/server.js';
 let server,root;
+let sessionCookie='';
 before(async()=>{
   server=createApp();await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
   root=`http://127.0.0.1:${server.address().port}`;
 });
 after(()=>new Promise(resolve=>server.close(resolve)));
-const req=async(path,obj)=>{const r=await fetch(root+path,obj?{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(obj)}:{});return {status:r.status,data:await r.json(),headers:r.headers};};
+const rememberCookie=(headers)=>{
+  const raw=headers.getSetCookie?.()||[];
+  const list=raw.length?raw:[headers.get('set-cookie')].filter(Boolean);
+  for(const c of list){
+    const m=String(c).match(/syncy-demo-session=([^;]+)/);
+    if(m) sessionCookie=`syncy-demo-session=${m[1]}`;
+  }
+};
+const req=async(path,obj)=>{
+  const headers={'content-type':'application/json'};
+  if(sessionCookie) headers.cookie=sessionCookie;
+  const r=await fetch(root+path,obj?{method:'POST',headers,body:JSON.stringify(obj)}:{headers:sessionCookie?{cookie:sessionCookie}:{}});
+  rememberCookie(r.headers);
+  return {status:r.status,data:await r.json(),headers:r.headers};
+};
 test('health endpoint declares synthetic and store',async()=>{const {data}=await req('/health');assert.equal(data.syntheticOnly,true);assert.equal(data.store,'memory');});
 test('web app and static assets are served',async()=>{for(const p of ['/','/app.css','/app.js','/favicon.svg']){const r=await fetch(root+p);assert.equal(r.status,200);assert((await r.text()).length>100);}});
 test('web server does not disclose project source',async()=>{const r=await fetch(root+'/src/core/data.js');assert.equal(r.status,404);});

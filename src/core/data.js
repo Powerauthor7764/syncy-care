@@ -63,7 +63,64 @@ export const PATIENTS = {
       ] }
     ],
     discharge: { status: 'preview', label: 'Discharge not confirmed', record: 'CarePlan/CP-02048', instructions: ['Review the updated care plan with the hospital team before leaving.'], followUps: ['Ask the care team whether follow-up visits will be needed.'], warningSigns: ['No hospital-approved discharge warning-sign list has been entered yet. Ask your nurse for the approved instructions.'], contact: 'Use the bedside call button to speak with your nurse.' },
-    specificQuestions: ['What prompted the ultrasound order?', 'Can you explain why the IV medication was stopped?']
+    specificQuestions: ['What prompted the ultrasound order?', 'Can you explain why the IV medication was stopped?'],
+    timelineSteps: [
+      {
+        id: 'maria-step-0',
+        label: 'Morning plan · ultrasound pending',
+        today: null, // filled from patient.today at resolve time
+        snapshot: null,
+        pending: null,
+      },
+      {
+        id: 'maria-step-1',
+        label: 'Afternoon · ultrasound completed',
+        today: [
+          item('OBS-02041', 'Observation', 'Morning blood sample collected', 'done', { time: '8:00 AM', note: 'Laboratory results are still pending.' }),
+          item('CP-02042', 'CarePlan', 'Physician rounds', 'done', { time: '10:00 AM', note: 'The team reviewed the plan.' }),
+          item('SR-02047', 'ServiceRequest', 'Abdominal ultrasound', 'done', { time: '3:00 PM', note: 'Imaging completed. Results are not interpreted by Syncy.' }),
+          item('CP-02049', 'CarePlan', 'Care-plan review', 'todo', { time: '4:30 PM', note: 'An opportunity to clarify what has changed.' }),
+        ],
+        snapshot: [
+          item('MR-02040', 'MedicationRequest', 'IV pain medication', 'discontinued'),
+          item('MR-02045', 'MedicationRequest', 'Oral acetaminophen', 'active'),
+          item('SR-02044', 'ServiceRequest', 'Afternoon bloodwork', 'cancelled'),
+          item('SR-02047', 'ServiceRequest', 'Abdominal ultrasound', 'completed'),
+          item('CP-02048', 'CarePlan', 'Possible discharge planning', 'preview'),
+          item('CP-02042', 'CarePlan', 'Physician rounds', 'active'),
+          item('DR-02050', 'DiagnosticReport', 'Ultrasound results pending review', 'active'),
+        ],
+        pending: [
+          { label: 'Morning bloodwork results', record: 'Observation/OBS-02041' },
+          { label: 'Ultrasound results — care-team review', record: 'DiagnosticReport/DR-02050' },
+          { label: 'Care-plan review', record: 'CarePlan/CP-02049' },
+        ],
+      },
+      {
+        id: 'maria-step-2',
+        label: 'Evening · care-plan review noted',
+        today: [
+          item('OBS-02041', 'Observation', 'Morning blood sample collected', 'done', { time: '8:00 AM', note: 'Laboratory results are still pending.' }),
+          item('CP-02042', 'CarePlan', 'Physician rounds', 'done', { time: '10:00 AM', note: 'The team reviewed the plan.' }),
+          item('SR-02047', 'ServiceRequest', 'Abdominal ultrasound', 'done', { time: '3:00 PM', note: 'Imaging completed. Results are not interpreted by Syncy.' }),
+          item('CP-02049', 'CarePlan', 'Care-plan review', 'done', { time: '4:30 PM', note: 'The team noted next steps. Ask your nurse for the approved summary.' }),
+        ],
+        snapshot: [
+          item('MR-02040', 'MedicationRequest', 'IV pain medication', 'discontinued'),
+          item('MR-02045', 'MedicationRequest', 'Oral acetaminophen', 'active'),
+          item('SR-02044', 'ServiceRequest', 'Afternoon bloodwork', 'cancelled'),
+          item('SR-02047', 'ServiceRequest', 'Abdominal ultrasound', 'completed'),
+          item('CP-02048', 'CarePlan', 'Possible discharge planning', 'active'),
+          item('CP-02042', 'CarePlan', 'Physician rounds', 'active'),
+          item('DR-02050', 'DiagnosticReport', 'Ultrasound results pending review', 'active'),
+          item('CP-02049', 'CarePlan', 'Care-plan review', 'completed'),
+        ],
+        pending: [
+          { label: 'Morning bloodwork results', record: 'Observation/OBS-02041' },
+          { label: 'Ultrasound results — care-team review', record: 'DiagnosticReport/DR-02050' },
+        ],
+      },
+    ],
   },
   jordan: {
     id: 'jordan', name: 'Jordan Lee', age: 24, room: '214', initials: 'JL', color: 'blue',
@@ -88,7 +145,28 @@ export const PATIENTS = {
       { name: 'Acetaminophen', instruction: 'At least 6 hours apart, only if needed.', record: 'MedicationRequest/MR-03015', criteria: [ { label: 'At least 6 hours apart', patterns: [/6\s*(hours?|hrs?)/i, /six\s+hours?/i] } ] }
     ],
     discharge: { status: 'preview', label: 'Awaiting care-team sign-off', record: 'CarePlan/CP-03013', instructions: ['Hospital-approved demo wound-care instruction: Keep the dressing clean and dry until your care team tells you to change it.', 'Review the approved medication list with the discharge nurse.'], followUps: ['The follow-up appointment has not been confirmed in this synthetic chart. Ask the care team.'], warningSigns: ['Hospital-approved demo warning sign: Contact the hospital team if the wound becomes increasingly red or starts draining.', 'Hospital-approved demo warning sign: Contact the hospital team if you develop a fever.'], contact: 'For concerns during the hospital stay, use your bedside call button. Ask the nurse for the post-discharge contact number.' },
-    specificQuestions: ['Who will confirm discharge?', 'Can we review how to care for the wound at home?']
+    specificQuestions: ['Who will confirm discharge?', 'Can we review how to care for the wound at home?'],
+    timelineSteps: [
+      { id: 'jordan-step-0', label: 'Pre-teaching · discharge teaching pending', today: null, snapshot: null, pending: null },
+      {
+        id: 'jordan-step-1',
+        label: 'After teaching · surgical review next',
+        today: [
+          item('CP-03010', 'CarePlan', 'Wound check', 'done', { time: '9:00 AM', note: 'Completed by the care team.' }),
+          item('CP-03011', 'CarePlan', 'Physiotherapy walk', 'done', { time: '11:00 AM', note: 'Mobility session completed.' }),
+          item('CP-03012', 'CarePlan', 'Discharge teaching', 'done', { time: '2:00 PM', note: 'Medication and wound-care information reviewed.' }),
+          item('CP-03013', 'CarePlan', 'Surgical team review', 'todo', { time: '4:00 PM', note: 'The team will determine next steps.' }),
+        ],
+        snapshot: [
+          item('MR-03007', 'MedicationRequest', 'IV antibiotic', 'discontinued'),
+          item('MR-03009', 'MedicationRequest', 'Oral Amoxicillin', 'active'),
+          item('CP-03010', 'CarePlan', 'Wound check', 'active'),
+          item('CP-03012', 'CarePlan', 'Discharge teaching', 'completed'),
+          item('CP-03013', 'CarePlan', 'Surgical team review', 'scheduled'),
+        ],
+        pending: [{ label: 'Surgical team review', record: 'CarePlan/CP-03013' }],
+      },
+    ],
   },
   ahmed: {
     id: 'ahmed', name: 'Ahmed Rahman', age: 55, room: '418', initials: 'AR', color: 'orange',
@@ -109,9 +187,78 @@ export const PATIENTS = {
       { label: 'Twice daily', patterns: [/twice\s+(?:a\s+day|day|daily)/i, /two\s+times\s+(a\s+)?day/i, /morning.+evening/i] }
     ] }],
     discharge: { status: 'not_planned', label: 'No discharge plan entered', record: 'CarePlan/CP-04012', instructions: ['The care team has not approved discharge instructions in the synthetic chart.'], followUps: ['Ask the care team about follow-up needs when the plan is confirmed.'], warningSigns: ['No hospital-approved discharge warning signs have been entered. Ask your care team for the approved list.'], contact: 'Use the bedside call button to speak with your nurse.' },
-    specificQuestions: ['What do we need to discuss after the X-ray?', 'Could we go through the inhaler instructions together?']
-  }
+    specificQuestions: ['What do we need to discuss after the X-ray?', 'Could we go through the inhaler instructions together?'],
+    timelineSteps: [
+      { id: 'ahmed-step-0', label: 'Morning · X-ray pending', today: null, snapshot: null, pending: null },
+      {
+        id: 'ahmed-step-1',
+        label: 'Afternoon · X-ray done · teaching next',
+        today: [
+          item('CP-04010', 'CarePlan', 'Respiratory therapy', 'done', { time: '8:30 AM', note: 'Routine session completed.' }),
+          item('SR-04011', 'ServiceRequest', 'Chest X-ray', 'done', { time: '11:30 AM', note: 'Imaging completed. Syncy does not interpret results.' }),
+          item('CP-04012', 'CarePlan', 'Physician rounds', 'done', { time: '1:00 PM', note: 'Plan review completed.' }),
+          item('CP-04013', 'CarePlan', 'Inhaler teaching', 'todo', { time: '3:00 PM', note: 'Review the care-team-approved instructions.' }),
+        ],
+        snapshot: [
+          item('CP-04009', 'CarePlan', 'Oxygen support', 'reduced'),
+          item('CP-04010', 'CarePlan', 'Respiratory therapy', 'active'),
+          item('SR-04011', 'ServiceRequest', 'Chest X-ray', 'completed'),
+          item('CP-04013', 'CarePlan', 'Inhaler teaching', 'scheduled'),
+        ],
+        pending: [{ label: 'Inhaler teaching', record: 'CarePlan/CP-04013' }],
+      },
+    ],
+  },
 };
 export function getPatient(id) { return Object.hasOwn(PATIENTS, id) ? PATIENTS[id] : null; }
 export function sourceOf(item) { return `${item.type}/${item.id}`; }
 export function patientList() { return Object.values(PATIENTS).map(({id,name,initials,color,age,room,situation,summary})=>({id,name,initials,color,age,room,situation,summary})); }
+
+/** Build step 0 from the patient's base fields, then overlay authored later steps. */
+export function getTimelineSteps(patient) {
+  if (!patient) return [];
+  const base = {
+    id: `${patient.id}-step-0`,
+    label: patient.timelineSteps?.[0]?.label || 'Initial synthetic chart',
+    today: patient.today,
+    snapshot: patient.snapshot,
+    pending: patient.pending,
+  };
+  const rest = (patient.timelineSteps || []).slice(1).map((step) => ({
+    id: step.id,
+    label: step.label,
+    today: step.today || patient.today,
+    snapshot: step.snapshot || patient.snapshot,
+    pending: step.pending || patient.pending,
+  }));
+  return [base, ...rest];
+}
+
+export function resolveActiveChart(patient, stepIndex = 0) {
+  const steps = getTimelineSteps(patient);
+  const idx = Math.max(0, Math.min(Number(stepIndex) || 0, steps.length - 1));
+  const step = steps[idx];
+  return {
+    ...patient,
+    today: step.today,
+    snapshot: step.snapshot,
+    pending: step.pending,
+    timelineStep: idx,
+    timelineStepCount: steps.length,
+    timelineLabel: step.label,
+    timelineStepId: step.id,
+  };
+}
+
+/** Parse clock times like "3:00 PM" into minutes from midnight for afternoon filtering. */
+export function timeToMinutes(timeStr) {
+  if (!timeStr || typeof timeStr !== 'string') return null;
+  const m = timeStr.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (!m) return null;
+  let h = Number(m[1]);
+  const min = Number(m[2]);
+  const ap = m[3].toUpperCase();
+  if (ap === 'PM' && h !== 12) h += 12;
+  if (ap === 'AM' && h === 12) h = 0;
+  return h * 60 + min;
+}
