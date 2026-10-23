@@ -4,19 +4,20 @@ const TOUR_KEY = 'syncy-tour-done';
 const TEAM_TOUR_KEY = 'syncy-team-tour-done';
 
 const PATIENT_TOUR = [
+  { target: 'patient-header', title: 'Welcome to Syncy Care', body: 'Your synthetic bedside workspace. Fictional MRN, room, and care team are labeled as a demo — not a real hospital chart.' },
   { target: 'glance', title: 'Today at a glance', body: 'See what is done, what is next, and what you may want to ask — all from approved synthetic chart snapshots.' },
   { target: 'ask-syncy', title: 'Ask Syncy', body: 'Ask plain-language questions about today’s plan. Answers cite synthetic records; Syncy does not make medical decisions.' },
   { target: 'explain-modes', title: 'Explanation modes', body: 'Choose Short, Simple, or Step-by-step rewording when Bedrock is configured — always from approved text first.' },
-  { target: 'timeline', title: 'Care timeline', body: 'Tap an event for time, status, source record, and notes. Status is labeled in words, not color alone.' },
+  { target: 'timeline', title: 'Care timeline', body: 'Open an event for time, status, source record, and notes. Status is labeled in words, not color alone.' },
   { target: 'demo-advance', title: 'Simulate chart update', body: 'Advance Maria’s demo day to show how answers and “since yesterday” update from new snapshots.' },
   { target: 'questions', title: 'My questions', body: 'Questions that need a clinician stay in a demo queue — no real nurse is notified.' },
   { target: 'teachback', title: 'Teach-back practice', body: 'Practice explaining a recorded instruction in your own words. This is not clinical certification.' },
 ];
 
 const TEAM_TOUR = [
+  { target: 'team-simulation', title: 'Simulation only', body: 'Everything on this screen is invented data for demonstration. No real care delivery occurs.' },
   { target: 'team-metrics', title: 'Team overview', body: 'Synthetic metrics show where patients may need another conversation — not clinical risk scores.' },
   { target: 'team-queue', title: 'Question queue', body: 'Patient questions from the demo appear here. Mark reviewed updates demo status only.' },
-  { target: 'team-simulation', title: 'Simulation banner', body: 'Everything on this screen is invented data for demonstration. No real care delivery occurs.' },
 ];
 
 const GUIDED_TIPS = [
@@ -214,13 +215,17 @@ function showError(e) {
 }
 
 function setView(view) {
+  if (state.tour.active && view !== tourRequiredView()) {
+    toast('Finish or skip the tour to leave this screen');
+    return;
+  }
   state.view = view;
   state.sidebar = false;
   render();
   window.scrollTo({ top: 0, behavior: 'smooth' });
   if (view === 'team' && !tourDone('team') && !state.tour.active) {
     state.tour = { active: true, step: 0, kind: 'team' };
-    queueTourPaint();
+    renderTour();
   }
 }
 
@@ -428,68 +433,138 @@ function tourSteps() {
   return state.tour.kind === 'team' ? TEAM_TOUR : PATIENT_TOUR;
 }
 
+function tourRequiredView() {
+  return state.tour.kind === 'team' ? 'team' : 'patient';
+}
+
+function ensureTourView() {
+  const need = tourRequiredView();
+  if (state.view !== need) {
+    state.view = need;
+    return true;
+  }
+  return false;
+}
+
+let tourPaintTimer = 0;
+function clearTourPaintTimer() {
+  if (tourPaintTimer) {
+    clearTimeout(tourPaintTimer);
+    tourPaintTimer = 0;
+  }
+}
+
+function endTour(reason = 'complete') {
+  clearTourPaintTimer();
+  const kind = state.tour.kind;
+  state.tour = { active: false, step: 0, kind };
+  markTourDone(kind);
+  document.body.classList.remove('tour-open');
+  const root = $('#tourRoot');
+  if (root) root.remove();
+  $$('[data-tour-active]').forEach((el) => el.removeAttribute('data-tour-active'));
+  if (reason === 'complete') toast(kind === 'team' ? 'Care-team tour complete' : "You're ready to explore Syncy Care");
+  else if (reason === 'skip') toast('Tour skipped');
+  render();
+}
+
 function renderTour() {
   let root = $('#tourRoot');
   if (!state.tour.active) {
+    clearTourPaintTimer();
     if (root) root.remove();
     document.body.classList.remove('tour-open');
     $$('[data-tour-active]').forEach((el) => el.removeAttribute('data-tour-active'));
     return;
   }
+
+  if (ensureTourView()) {
+    // View HTML must exist before targeting steps.
+    $('#mainContent').innerHTML =
+      ({ patient: patientView, team: teamView, safety: safetyView, architecture: architectureView }[state.view] ||
+        patientView)();
+  }
+
   const steps = tourSteps();
-  const step = steps[state.tour.step];
-  if (!step) {
-    state.tour.active = false;
-    markTourDone(state.tour.kind);
-    renderTour();
+  if (!steps.length || state.tour.step < 0) state.tour.step = 0;
+  if (state.tour.step >= steps.length) {
+    endTour('complete');
     return;
   }
+  const step = steps[state.tour.step];
+
   if (!root) {
     root = document.createElement('div');
     root.id = 'tourRoot';
     root.className = 'tour-root';
-    root.innerHTML = `<div class="tour-overlay" data-action="tour-skip"></div><div class="tour-spotlight" aria-hidden="true"></div><div class="tour-card" role="dialog" aria-modal="true" aria-labelledby="tourTitle"><div class="tour-progress" id="tourProgress"></div><h3 id="tourTitle"></h3><p id="tourBody"></p><div class="tour-actions"><button type="button" class="btn" data-action="tour-back">Back</button><button type="button" class="btn" data-action="tour-skip">Skip</button><button type="button" class="btn primary" data-action="tour-next"></button></div></div>`;
+    root.innerHTML = `<div class="tour-overlay" data-action="tour-skip" aria-hidden="true"></div><div class="tour-spotlight" aria-hidden="true"></div><div class="tour-card" role="dialog" aria-modal="true" aria-labelledby="tourTitle"><div class="tour-progress" id="tourProgress"></div><h3 id="tourTitle"></h3><p id="tourBody"></p><div class="tour-actions"><button type="button" class="btn" data-action="tour-back">Back</button><button type="button" class="btn" data-action="tour-skip">Skip</button><button type="button" class="btn primary" data-action="tour-next"></button></div></div>`;
     document.body.append(root);
   }
   document.body.classList.add('tour-open');
-  const target = document.querySelector(`[data-tour="${step.target}"]`);
+
   $$('[data-tour-active]').forEach((el) => el.removeAttribute('data-tour-active'));
+  const target = document.querySelector(`[data-tour="${step.target}"]`);
   if (target) {
     target.setAttribute('data-tour-active', 'true');
-    target.scrollIntoView({ block: 'center', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    target.scrollIntoView({ block: 'center', behavior: reduce ? 'auto' : 'smooth' });
   }
-  $('#tourTitle').textContent = step.title;
-  $('#tourBody').textContent = step.body;
-  $('#tourProgress').textContent = `Step ${state.tour.step + 1} of ${steps.length}`;
+
+  const titleEl = $('#tourTitle');
+  const bodyEl = $('#tourBody');
+  const progressEl = $('#tourProgress');
+  if (titleEl) titleEl.textContent = step.title;
+  if (bodyEl) bodyEl.textContent = target ? step.body : `${step.body} (This panel is off-screen — use Next to continue.)`;
+  if (progressEl) progressEl.textContent = `Step ${state.tour.step + 1} of ${steps.length}`;
   const nextBtn = root.querySelector('[data-action="tour-next"]');
-  nextBtn.textContent = state.tour.step >= steps.length - 1 ? 'Finish' : 'Next';
-  root.querySelector('[data-action="tour-back"]').disabled = state.tour.step <= 0;
-  queueTourPaint();
+  const backBtn = root.querySelector('[data-action="tour-back"]');
+  if (nextBtn) nextBtn.textContent = state.tour.step >= steps.length - 1 ? 'Finish' : 'Next';
+  if (backBtn) backBtn.disabled = state.tour.step <= 0;
+
+  queueTourPaint(true);
 }
 
-function queueTourPaint() {
-  requestAnimationFrame(() => {
+function placeTourChrome(target) {
+  const spot = $('#tourRoot .tour-spotlight');
+  const card = $('#tourRoot .tour-card');
+  if (!spot || !card) return;
+  const vh = window.innerHeight;
+  const vw = window.innerWidth;
+  if (!target) {
+    spot.style.cssText = 'opacity:0;top:0;left:0;width:0;height:0';
+    card.style.cssText = `top:50%;left:50%;transform:translate(-50%,-50%);z-index:10002`;
+    return;
+  }
+  const rect = target.getBoundingClientRect();
+  const pad = 8;
+  spot.style.cssText = `top:${Math.max(0, rect.top - pad)}px;left:${Math.max(0, rect.left - pad)}px;width:${Math.min(vw, rect.width + pad * 2)}px;height:${Math.min(vh, rect.height + pad * 2)}px;opacity:1`;
+  // Prefer below the highlight; flip above if it would leave the viewport.
+  card.style.cssText = `top:0;left:0;visibility:hidden;transform:none`;
+  const cardRect = card.getBoundingClientRect();
+  let top = rect.bottom + 14;
+  if (top + cardRect.height > vh - 12) top = Math.max(12, rect.top - cardRect.height - 14);
+  // If still overlapping a tall panel, pin near the bottom of the viewport so controls stay reachable.
+  if (top + cardRect.height > vh - 8 || top < 8) top = Math.max(12, vh - cardRect.height - 16);
+  let left = Math.min(Math.max(12, rect.left), Math.max(12, vw - cardRect.width - 12));
+  card.style.cssText = `top:${top}px;left:${left}px;transform:none;visibility:visible;z-index:10002`;
+}
+
+function queueTourPaint(afterScroll = false) {
+  clearTourPaintTimer();
+  const paint = () => {
     if (!state.tour.active) return;
     const steps = tourSteps();
     const step = steps[state.tour.step];
     const target = step ? document.querySelector(`[data-tour="${step.target}"]`) : null;
-    const spot = $('#tourRoot .tour-spotlight');
-    const card = $('#tourRoot .tour-card');
-    if (!spot || !card) return;
-    if (!target) {
-      spot.style.cssText = 'opacity:0';
-      card.style.cssText = 'top:50%;left:50%;transform:translate(-50%,-50%);';
-      return;
-    }
-    const rect = target.getBoundingClientRect();
-    const pad = 8;
-    spot.style.cssText = `top:${rect.top - pad}px;left:${rect.left - pad}px;width:${rect.width + pad * 2}px;height:${rect.height + pad * 2}px;opacity:1`;
-    const cardRect = card.getBoundingClientRect();
-    let top = rect.bottom + 12;
-    if (top + cardRect.height > window.innerHeight - 12) top = Math.max(12, rect.top - cardRect.height - 12);
-    let left = Math.min(Math.max(12, rect.left), window.innerWidth - cardRect.width - 12);
-    card.style.cssText = `top:${top}px;left:${left}px;transform:none;`;
+    placeTourChrome(target);
+  };
+  requestAnimationFrame(() => {
+    requestAnimationFrame(paint);
   });
+  // Re-measure after smooth scroll settles so the card never ends up under the panel.
+  if (afterScroll) {
+    tourPaintTimer = setTimeout(paint, window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 40 : 320);
+  }
 }
 
 function startPatientTour(force = false) {
@@ -534,8 +609,6 @@ function render() {
     if (list) list.scrollTop = list.scrollHeight;
   }
   renderTour();
-  if (state.tour.active && state.view === 'patient' && state.tour.kind === 'patient') queueTourPaint();
-  if (state.tour.active && state.view === 'team' && state.tour.kind === 'team') queueTourPaint();
 }
 
 async function askQuestion(question, target = 'patient', extra = {}) {
@@ -733,30 +806,40 @@ function startMic() {
 }
 
 function tourNext() {
+  if (!state.tour.active) return;
   const steps = tourSteps();
   if (state.tour.step >= steps.length - 1) {
-    state.tour.active = false;
-    markTourDone(state.tour.kind);
-    toast('Tour complete');
-    render();
+    endTour('complete');
     return;
   }
   state.tour.step += 1;
+  // Skip steps whose targets are missing so the tour never dead-ends.
+  while (state.tour.step < steps.length) {
+    const step = steps[state.tour.step];
+    if (document.querySelector(`[data-tour="${step.target}"]`)) break;
+    state.tour.step += 1;
+  }
+  if (state.tour.step >= steps.length) {
+    endTour('complete');
+    return;
+  }
   renderTour();
 }
 
 function tourBack() {
-  if (state.tour.step > 0) {
+  if (!state.tour.active || state.tour.step <= 0) return;
+  state.tour.step -= 1;
+  while (state.tour.step > 0) {
+    const step = tourSteps()[state.tour.step];
+    if (document.querySelector(`[data-tour="${step.target}"]`)) break;
     state.tour.step -= 1;
-    renderTour();
   }
+  renderTour();
 }
 
 function tourSkip() {
-  state.tour.active = false;
-  markTourDone(state.tour.kind);
-  toast('Tour skipped');
-  render();
+  if (!state.tour.active) return;
+  endTour('skip');
 }
 
 async function exploreHospitalDay() {
@@ -772,6 +855,26 @@ async function exploreHospitalDay() {
 }
 
 function clickHandler(e) {
+  // Tour chrome is outside <main>; handle it before any other UI so Next/Skip never get blocked.
+  const tourActionEl = e.target.closest('[data-action^="tour-"]');
+  if (tourActionEl && state.tour.active) {
+    e.preventDefault();
+    e.stopPropagation();
+    const action = tourActionEl.dataset.action;
+    if (action === 'tour-next') tourNext();
+    else if (action === 'tour-back') tourBack();
+    else if (action === 'tour-skip') tourSkip();
+    return;
+  }
+  if (state.tour.active) {
+    // While the tour is open, ignore app UI clicks so the flow cannot trap mid-step.
+    if (!e.target.closest('#tourRoot')) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    return;
+  }
+
   const button = e.target.closest('button');
   const timelineBtn = e.target.closest('[data-timeline-id]');
   if (timelineBtn) {
@@ -856,23 +959,21 @@ function clickHandler(e) {
     return;
   }
   if (button.dataset.action === 'replay-tour') {
+    try {
+      localStorage.removeItem(TOUR_KEY);
+    } catch {
+      /* ignore */
+    }
     startPatientTour(true);
     return;
   }
   if (button.dataset.action === 'replay-team-tour') {
+    try {
+      localStorage.removeItem(TEAM_TOUR_KEY);
+    } catch {
+      /* ignore */
+    }
     startTeamTour(true);
-    return;
-  }
-  if (button.dataset.action === 'tour-next') {
-    tourNext();
-    return;
-  }
-  if (button.dataset.action === 'tour-back') {
-    tourBack();
-    return;
-  }
-  if (button.dataset.action === 'tour-skip') {
-    tourSkip();
     return;
   }
   if (button.id === 'micButton') {
