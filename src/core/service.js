@@ -635,32 +635,50 @@ export async function dashboard(patientId = null, sessionId = 'default') {
   };
 }
 
+async function locateQuestion(questionId, preferredSession) {
+  const sid = sessionOrDefault(preferredSession);
+  for (const patientId of Object.keys(PATIENTS)) {
+    const key = stateKey(sid, patientId);
+    const state = await store.get(key);
+    if (state.questions.some((q) => q.id === questionId)) return { sessionId: sid, patientId };
+  }
+  // Same Node process only (local npm start / warm instance): scan every session key.
+  if (typeof store.keys === 'function') {
+    for (const key of store.keys()) {
+      const state = await store.get(key);
+      if (!state.questions?.some((q) => q.id === questionId)) continue;
+      const colon = key.lastIndexOf(':');
+      const sessionId = colon > 0 ? key.slice(0, colon) : 'default';
+      const patientId = colon > 0 ? key.slice(colon + 1) : key;
+      if (Object.hasOwn(PATIENTS, patientId)) return { sessionId, patientId };
+    }
+  }
+  return null;
+}
+
 export async function reviewQuestion(id, sessionId = 'default') {
   const questionId = mustText(id, 'question ID', 100);
-  const sid = sessionOrDefault(sessionId);
-  for (const patientId of Object.keys(PATIENTS)) {
-    const state = await store.get(stateKey(sid, patientId));
-    if (state.questions.some((q) => q.id === questionId))
-      return modifyState(sid, patientId, async (s) => {
-        const item = s.questions.find((q) => q.id === questionId);
-        if (!item) throw new UserError('Question not found', 404);
-        item.status = 'reviewed';
-        item.reviewedAt = new Date().toISOString();
-        item.patientLabel = 'Reviewed (demo)';
-        item.disclaimer = DEMO_DISCLAIMER;
-        s.audit.unshift({
-          id: randomUUID(),
-          at: new Date().toISOString(),
-          patientId,
-          tool: 'review_question',
-          policy: 'GREEN',
-          source: 'ask_care_team',
-          record: null,
-          summary: `Demo care-team marked reviewed: ${item.question.slice(0, 100)}`,
-          queued: false,
-        });
-        return { ...item, demoDisclaimer: DEMO_DISCLAIMER };
-      });
-  }
-  throw new UserError('Question not found', 404);
+  const located = await locateQuestion(questionId, sessionId);
+  if (!located) throw new UserError('Question not found', 404);
+  const { sessionId: sid, patientId } = located;
+  return modifyState(sid, patientId, async (s) => {
+    const item = s.questions.find((q) => q.id === questionId);
+    if (!item) throw new UserError('Question not found', 404);
+    item.status = 'reviewed';
+    item.reviewedAt = new Date().toISOString();
+    item.patientLabel = 'Reviewed (demo)';
+    item.disclaimer = DEMO_DISCLAIMER;
+    s.audit.unshift({
+      id: randomUUID(),
+      at: new Date().toISOString(),
+      patientId,
+      tool: 'review_question',
+      policy: 'GREEN',
+      source: 'ask_care_team',
+      record: null,
+      summary: `Demo care-team marked reviewed: ${item.question.slice(0, 100)}`,
+      queued: false,
+    });
+    return { ...item, demoDisclaimer: DEMO_DISCLAIMER, patientId };
+  });
 }

@@ -7,6 +7,9 @@
   <meta name="description" content="Syncy Care: synthetic bedside patient-understanding and care-team communication demo.">
   <title>Syncy Care — Care, understood.</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,700;1,9..144,500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/app.css">
   <script src="/app.js" defer></script>
 </head>
@@ -22,12 +25,13 @@
       <button type="button" class="btn landing-signin-btn" id="goToLogin">Sign in</button>
     </header>
     <main class="landing-hero">
-      <p class="landing-eyebrow">✦ Synthetic bedside companion</p>
-      <h1>Care,<br><em>understood.</em></h1>
-      <p class="landing-lead">Turn approved care plans into clear answers — for patients, families, and care teams. Demo only. Not for clinical use.</p>
+      <p class="landing-eyebrow">✦ Hospital tablet · bedside demo</p>
+      <h1>Your day in<br><em>plain language.</em></h1>
+      <p class="landing-lead">Built for a calm bedside tablet experience: today’s plan, what changed, and questions for your nurse — from approved synthetic charts only. Not for clinical use.</p>
       <div class="landing-actions">
-        <button type="button" class="btn primary" id="landingCta">Sign in to workspace ↗</button>
-        <span class="landing-note">One demo account · synthetic records only</span>
+        <button type="button" class="btn primary landing-primary" id="exploreHospitalDay">Explore a Hospital Day ↗</button>
+        <button type="button" class="btn landing-secondary" id="landingCta">Sign in to workspace</button>
+        <span class="landing-note">Demo: demo@syncycare.test · synthetic MRN & records</span>
       </div>
     </main>
     <footer class="landing-foot">Syncy Care · Hackathon demonstration · The AI explains. The clinician interprets.</footer>
@@ -72,6 +76,10 @@
       </nav>
       <div class="sidebar-label sidebar-label-space">YOUR PATIENTS <span>03</span></div>
       <div id="sidebarPatients" class="sidebar-patients"></div>
+      <div class="sidebar-label sidebar-label-space">HELP</div>
+      <div class="sidebar-help">
+        <button type="button" class="nav-item sidebar-help-btn" id="replayTourBtn"><span class="nav-icon">?</span> Replay bedside tour</button>
+      </div>
       <div class="sidebar-bottom"><div class="mini-dot"></div><div><b>Demo environment</b><p>Synthetic records only<br>Not for clinical use</p></div></div>
     </aside>
     <div class="main-shell">

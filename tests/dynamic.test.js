@@ -103,6 +103,14 @@ describe('question queue review loop', () => {
     assert.equal(view.questions[0].status, 'reviewed');
     assert.match(view.questions[0].patientLabel, /Reviewed/i);
   });
+
+  test('review finds question even when session header differs (same process)', async () => {
+    const red = await ask('maria', 'Should I stop taking my medication?', 'sess-create');
+    assert.ok(red.questionId);
+    const reviewed = await reviewQuestion(red.questionId, 'sess-other-header');
+    assert.equal(reviewed.status, 'reviewed');
+    assert.equal(reviewed.patientId, 'maria');
+  });
 });
 
 describe('http session cookie isolation', () => {

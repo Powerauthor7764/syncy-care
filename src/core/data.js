@@ -26,7 +26,16 @@ export const GLOSSARY = {
 const item = (id, type, title, status, extra = {}) => ({ id, type, title, status, ...extra });
 export const PATIENTS = {
   maria: {
-    id: 'maria', name: 'Maria Thompson', age: 68, room: '302', initials: 'MT', color: 'violet',
+    id: 'maria', name: 'Maria Thompson', age: 68, room: '302', bed: 'B', initials: 'MT', color: 'violet',
+    mrn: 'SYN-MT-30241',
+    unit: 'Med-Surg East · Floor 3',
+    service: 'General Medicine (synthetic)',
+    journeyStage: 'Active inpatient day · awaiting afternoon imaging',
+    careTeam: [
+      { name: 'Priya Nair, RN', role: 'Registered Nurse' },
+      { name: 'Dr. Ethan Cole', role: 'Attending Physician' },
+      { name: 'Sam Ortiz', role: 'Patient Educator' },
+    ],
     situation: 'Understanding an updated abdominal pain care plan',
     summary: 'A test has been added and the medication plan has changed. The care team has noted that discharge may be considered later; it is not decided.',
     today: [
@@ -123,7 +132,16 @@ export const PATIENTS = {
     ],
   },
   jordan: {
-    id: 'jordan', name: 'Jordan Lee', age: 24, room: '214', initials: 'JL', color: 'blue',
+    id: 'jordan', name: 'Jordan Lee', age: 24, room: '214', bed: 'A', initials: 'JL', color: 'blue',
+    mrn: 'SYN-JL-21408',
+    unit: 'Surgical Recovery · Floor 2',
+    service: 'General Surgery (synthetic)',
+    journeyStage: 'Post-op recovery · discharge teaching today',
+    careTeam: [
+      { name: 'Maya Brooks, RN', role: 'Registered Nurse' },
+      { name: 'Dr. Leah Kim', role: 'Attending Physician' },
+      { name: 'Chris Patel', role: 'Patient Educator' },
+    ],
     situation: 'Recovering after surgery; learning discharge instructions',
     summary: 'Discharge teaching is planned for today. Final discharge decisions belong to the clinical team.',
     today: [
@@ -169,7 +187,16 @@ export const PATIENTS = {
     ],
   },
   ahmed: {
-    id: 'ahmed', name: 'Ahmed Rahman', age: 55, room: '418', initials: 'AR', color: 'orange',
+    id: 'ahmed', name: 'Ahmed Rahman', age: 55, room: '418', bed: 'C', initials: 'AR', color: 'orange',
+    mrn: 'SYN-AR-41855',
+    unit: 'Respiratory Care · Floor 4',
+    service: 'Pulmonary Medicine (synthetic)',
+    journeyStage: 'Inpatient respiratory day · teaching scheduled',
+    careTeam: [
+      { name: 'Jordan Ellis, RN', role: 'Registered Nurse' },
+      { name: 'Dr. Nadia Hassan', role: 'Attending Physician' },
+      { name: 'Riley Chen, RT', role: 'Respiratory Therapist' },
+    ],
     situation: 'Reviewing respiratory care and inhaler teaching',
     summary: 'Respiratory teaching and an imaging appointment are included in the approved plan. No imaging result is interpreted here.',
     today: [
@@ -212,7 +239,26 @@ export const PATIENTS = {
 };
 export function getPatient(id) { return Object.hasOwn(PATIENTS, id) ? PATIENTS[id] : null; }
 export function sourceOf(item) { return `${item.type}/${item.id}`; }
-export function patientList() { return Object.values(PATIENTS).map(({id,name,initials,color,age,room,situation,summary})=>({id,name,initials,color,age,room,situation,summary})); }
+export function patientList() {
+  return Object.values(PATIENTS).map(
+    ({ id, name, initials, color, age, room, bed, mrn, unit, service, journeyStage, situation, summary, careTeam }) => ({
+      id,
+      name,
+      initials,
+      color,
+      age,
+      room,
+      bed,
+      mrn,
+      unit,
+      service,
+      journeyStage,
+      situation,
+      summary,
+      careTeam,
+    }),
+  );
+}
 
 /** Build step 0 from the patient's base fields, then overlay authored later steps. */
 export function getTimelineSteps(patient) {
