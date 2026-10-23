@@ -23,11 +23,13 @@ npm run dev     # optional automatic restart on source changes
 
 From an extracted ZIP folder, open a terminal in the directory containing `package.json`. The browser reads from the same server as the MCP endpoint. No fake login is needed: select one of the three synthetic patients in the top-right corner or sidebar.
 
-**Demo sessions:** The server sets an HttpOnly `syncy-demo-session` cookie and keys in-memory state as `sessionId:patientId`. Local `npm start` is the judge-reliable path. On Vercel, multi-instance memory is best-effort (instances do not share the Map).
+**Demo sessions:** The server sets an HttpOnly `syncy-demo-session` cookie and keys in-memory state as `sessionId:patientId`. Local `npm start` is the judge-reliable path. On Vercel, multi-instance memory is best-effort (instances do not share the Map)—prefer a single local Node process for timeline + care-team review demos.
+
+**Bedside UX:** Landing **Explore a Hospital Day** signs into Maria’s synthetic workspace with a guided spotlight tour. Replay from the sidebar Help menu. Architecture includes a live **Run MCP demo** control (`initialize` → `tools/list` → `tools/call`).
 
 ### Tour of the working product
 
-1. **Patient workspace** — ask "What's happening today?", then "What about after lunch?" for context-aware follow-ups, suggestion chips, and source records. Pick Maria, Jordan, or Ahmed.
+1. **Patient workspace** — bedside header (fictional MRN/unit/care team), Today at a glance, then ask "What's happening today?" / "What about after lunch?" for context-aware follow-ups, suggestion chips, and source records.
 2. **Simulate next update** — on Maria’s timeline, advance authored snapshots (ultrasound completed → care-plan review). Ask "What changed?" then **Reset demo** to return to step 0.
 3. **Safety demonstration** — ask "Should I stop taking my medication?" and see the RED refusal and demo queue (no real clinician notified). Ask "Why was my ultrasound ordered?" for YELLOW chart-only text. Mark reviewed on the care-team dashboard; the patient **My questions (demo)** panel shows Reviewed.
 4. **Teach-back** — with Jordan selected, enter "One tablet twice a day with food" for Amoxicillin. See matched vs review criteria and the topic progress strip. Try "One in the morning" to flag clarification.

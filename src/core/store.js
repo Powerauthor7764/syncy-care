@@ -41,6 +41,10 @@ export class MemoryStore {
     const prefix = `${sessionId || 'default'}:`;
     for (const key of [...this.data.keys()]) if (key.startsWith(prefix)) this.data.delete(key);
   }
+  /** Local/single-process only — used to locate questions if session headers diverge. */
+  keys() {
+    return [...this.data.keys()];
+  }
 }
 
 export class DynamoStore {

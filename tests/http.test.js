@@ -41,6 +41,14 @@ test('dashboard and review endpoint are connected',async()=>{
  const q=await req('/api/dashboard');assert(q.data.questions.some(x=>x.id===r.data.questionId));
  const done=await req(`/api/questions/${r.data.questionId}/review`,{});assert.equal(done.data.status,'reviewed');
 });
+test('demo advance and reset routes are registered',async()=>{
+  const adv=await req('/api/demo/advance',{patientId:'maria'});
+  assert.equal(adv.status,200);
+  assert.equal(adv.data.timelineStep,1);
+  const rst=await req('/api/demo/reset',{patientId:'maria'});
+  assert.equal(rst.status,200);
+  assert.equal(rst.data.timelineStep,0);
+});
 test('reset blocked by default',async()=>{const r=await req('/api/reset-demo',{});assert.equal(r.status,403);});
 test('invalid patient ID errors (no fallback)',async()=>{const r=await req('/api/ask',{patientId:'hacker',question:'What is happening?'});assert.equal(r.status,404);});
 test('unsafe unauthenticated origins receive an error',async()=>{

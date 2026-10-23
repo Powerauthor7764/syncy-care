@@ -13,3 +13,78 @@ body.large-text .composer textarea{font-size:16px}
 body.large-text .topic-glyph{font-size:24px}
 body.large-text .section-header h2{font-size:18px}
 body.large-text .hero h2{font-size:30px}
+
+/* Hospital bedside UX — typography & calm navy/teal */
+:root{
+  --font-sans:"DM Sans",ui-sans-serif,system-ui,sans-serif;
+  --font-display:"Fraunces","DM Sans",serif;
+  --navy:#0f2a36;
+  --navy-soft:#163c48;
+  --sea:#0b8c81;
+}
+body{font-family:var(--font-sans)}
+.brand strong,.bedside-name,.page-heading h1,.landing-hero h1,.login-card h1{font-family:var(--font-display)}
+.landing-secondary{background:transparent;border-color:#4a7a84;color:#d6ebe8}
+.landing-secondary:hover{background:#1a3c48}
+.landing-primary{padding:13px 20px;font-size:12px}
+.sidebar-help{padding:0 4px 8px}
+.sidebar-help-btn{width:100%;margin:0}
+.bedside-header{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:20px;padding:22px 24px;margin-bottom:18px;background:linear-gradient(120deg,var(--navy) 0%,var(--navy-soft) 55%,#1f5f5a 100%);color:#ecf5f5;border:0}
+.bedside-name-row{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-bottom:10px}
+.bedside-name{margin:0;font-size:clamp(22px,3vw,30px);letter-spacing:-.5px;font-weight:700;color:#fff}
+.demo-badge{font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;background:#ffffff18;border:1px solid #ffffff35;color:#9de8d8;padding:6px 10px;border-radius:100px}
+.bedside-meta{display:flex;flex-wrap:wrap;gap:10px 18px;font-size:11px;color:#b8d0d6}
+.bedside-meta b{color:#8ec9c0;margin-right:4px;font-weight:700}
+.bedside-journey{margin:12px 0 0;font-size:12px;color:#c5dde2;line-height:1.55;max-width:52ch}
+.bedside-team .small-label{color:#8fb5bc;margin-top:0}
+.care-team-list{margin:0;padding:0;list-style:none;display:grid;gap:6px}
+.care-team-list li{font-size:11px;color:#d0e8ea;line-height:1.45}
+.team-role{display:inline-block;font-size:9px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#7ecfb8;margin-right:6px}
+.glance-card{margin-bottom:18px;border-color:#dce9ea}
+.glance-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+.glance-tile{border:1px solid #e6efef;border-radius:11px;padding:12px 10px;background:#f9fcfc;text-align:left}
+.glance-tile.accent{border-color:#b8e4dc;background:#eef9f6}
+.glance-k{display:block;font-size:9px;font-weight:800;letter-spacing:.1em;color:#7a949b;text-transform:uppercase;margin-bottom:4px}
+.glance-tile strong{display:block;font-size:18px;color:var(--navy-soft);letter-spacing:-.4px}
+.glance-tile small{display:block;font-size:9px;color:#8aa3a9;margin-top:3px;line-height:1.4}
+.glance-denom{font-size:12px;color:#8ab5af;font-weight:600}
+.chat-prominent{border-color:#c5e8e0;box-shadow:0 8px 28px rgba(11,140,129,.08)}
+.btn-ask{min-width:110px}
+.explain-modes{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:12px;padding-top:10px;border-top:1px dashed #e2ecec}
+.explain-label{font-size:10px;font-weight:800;color:#628088}
+.mode-chip{border-color:#cce8e2;background:#f3fbf9}
+.timeline-list{display:grid;gap:8px;margin-top:8px}
+.timeline-event{width:100%;text-align:left;border:1px solid #e6eeee;border-radius:10px;padding:10px 12px;background:#fcfefd;transition:border-color .15s,box-shadow .15s}
+.timeline-event:hover{border-color:#9fd4cb}
+.timeline-event.open{border-color:#0b8c81;box-shadow:0 0 0 2px #0b8c8122}
+.timeline-event-head{display:grid;grid-template-columns:auto auto 1fr;gap:10px;align-items:center}
+.timeline-status-text{font-size:9px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#3d6d66;background:#e8f6f2;border:1px solid #cce8e0;padding:3px 7px;border-radius:6px}
+.timeline-event-head strong{font-size:12px;color:#2a4a52}
+.timeline-event-detail{margin-top:10px;padding-top:10px;border-top:1px solid #eef3f3;font-size:11px;color:#5a757c;line-height:1.55}
+.timeline-event-detail .detail-k{font-weight:800;color:#456870;margin-right:6px}
+.guided-banner{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:14px;padding:14px 18px;margin-bottom:18px;border-radius:12px;border:1px solid #c9e8e0;background:linear-gradient(90deg,#eef9f6,#f7fcfb);color:#2a5058}
+.guided-banner strong{display:block;font-size:12px;margin-bottom:4px;color:#0f5f56}
+.guided-banner p{margin:0;font-size:11px;line-height:1.55;max-width:62ch}
+.guided-actions{display:flex;gap:8px;flex-wrap:wrap}
+.simulation-banner{padding:14px 16px;border-radius:11px;border:1px solid #f0dcc0;background:#fff8ed;color:#7a5a32;font-size:11px;line-height:1.6;margin-bottom:18px}
+.simulation-banner.strong{border-width:2px;font-size:12px}
+.simulation-banner strong{color:#9a4a2a}
+.team-roster-line{padding:10px 0;border-bottom:1px solid #eef3f3;font-size:11px}
+.team-roster-line:last-child{border-bottom:0}
+.team-roster-line span{color:#8aa3a9;margin-left:6px}
+.team-roster-line p{margin:4px 0 0;color:#5a757c;font-size:10px;line-height:1.5}
+.mcp-log{margin:0;padding:14px;border-radius:10px;background:#0f2a36;color:#c8e8e4;font-size:10px;line-height:1.5;max-height:360px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere}
+.tour-root{position:fixed;inset:0;z-index:50;pointer-events:none}
+.tour-overlay{position:absolute;inset:0;background:#0a1e2880;pointer-events:auto}
+.tour-spotlight{position:fixed;border-radius:12px;box-shadow:0 0 0 9999px #0a1e2888,0 0 0 3px #6de1c4;pointer-events:none;transition:top .2s,left .2s,width .2s,height .2s}
+@media (prefers-reduced-motion:reduce){.tour-spotlight{transition:none}}
+.tour-card{position:fixed;width:min(360px,calc(100vw - 24px));background:#fff;border-radius:14px;padding:18px 18px 14px;box-shadow:0 20px 50px #102b3740;border:1px solid #dce9ea;pointer-events:auto}
+.tour-progress{font-size:9px;font-weight:800;letter-spacing:.12em;color:#7a949b;text-transform:uppercase;margin-bottom:8px}
+.tour-card h3{margin:0 0 8px;font-size:16px;color:var(--navy);font-family:var(--font-display)}
+.tour-card p{margin:0 0 14px;font-size:12px;color:#5a757c;line-height:1.6}
+.tour-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+[data-tour-active]{position:relative;z-index:51}
+body.tour-open main{pointer-events:none}
+body.tour-open .tour-root,body.tour-open [data-tour-active]{pointer-events:auto}
+@media(max-width:1050px){.glance-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.bedside-header{grid-template-columns:1fr}}
+@media(max-width:710px){.glance-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.timeline-event-head{grid-template-columns:1fr;gap:4px}}
