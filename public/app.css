@@ -74,17 +74,21 @@ body{font-family:var(--font-sans)}
 .team-roster-line span{color:#8aa3a9;margin-left:6px}
 .team-roster-line p{margin:4px 0 0;color:#5a757c;font-size:10px;line-height:1.5}
 .mcp-log{margin:0;padding:14px;border-radius:10px;background:#0f2a36;color:#c8e8e4;font-size:10px;line-height:1.5;max-height:360px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere}
-.tour-root{position:fixed;inset:0;z-index:50;pointer-events:none}
-.tour-overlay{position:absolute;inset:0;background:#0a1e2880;pointer-events:auto}
-.tour-spotlight{position:fixed;border-radius:12px;box-shadow:0 0 0 9999px #0a1e2888,0 0 0 3px #6de1c4;pointer-events:none;transition:top .2s,left .2s,width .2s,height .2s}
+.tour-root{position:fixed;inset:0;z-index:10000;pointer-events:none}
+.tour-overlay{position:absolute;inset:0;background:#0a1e2880;pointer-events:auto;cursor:pointer}
+.tour-spotlight{position:fixed;border-radius:12px;box-shadow:0 0 0 9999px #0a1e2888,0 0 0 3px #6de1c4;pointer-events:none;z-index:10001;transition:top .2s,left .2s,width .2s,height .2s}
 @media (prefers-reduced-motion:reduce){.tour-spotlight{transition:none}}
-.tour-card{position:fixed;width:min(360px,calc(100vw - 24px));background:#fff;border-radius:14px;padding:18px 18px 14px;box-shadow:0 20px 50px #102b3740;border:1px solid #dce9ea;pointer-events:auto}
+.tour-card{position:fixed;width:min(360px,calc(100vw - 24px));background:#fff;border-radius:14px;padding:18px 18px 14px;box-shadow:0 20px 50px #102b3740;border:1px solid #dce9ea;pointer-events:auto;z-index:10002}
 .tour-progress{font-size:9px;font-weight:800;letter-spacing:.12em;color:#7a949b;text-transform:uppercase;margin-bottom:8px}
 .tour-card h3{margin:0 0 8px;font-size:16px;color:var(--navy);font-family:var(--font-display)}
 .tour-card p{margin:0 0 14px;font-size:12px;color:#5a757c;line-height:1.6}
 .tour-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
-[data-tour-active]{position:relative;z-index:51}
-body.tour-open main{pointer-events:none}
-body.tour-open .tour-root,body.tour-open [data-tour-active]{pointer-events:auto}
+.tour-actions .btn:disabled{opacity:.45}
+/* Highlight in place — never raise above the tour chrome or Next/Skip get trapped under the panel */
+[data-tour-active]{outline:3px solid #6de1c4;outline-offset:3px;border-radius:12px}
+body.tour-open main,body.tour-open .sidebar,body.tour-open .topbar{pointer-events:none}
+body.tour-open .tour-root{pointer-events:none}
+body.tour-open .tour-overlay,body.tour-open .tour-card{pointer-events:auto}
+body.tour-open [data-tour-active]{pointer-events:none}
 @media(max-width:1050px){.glance-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.bedside-header{grid-template-columns:1fr}}
 @media(max-width:710px){.glance-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.timeline-event-head{grid-template-columns:1fr;gap:4px}}
